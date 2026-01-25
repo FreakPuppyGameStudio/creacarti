@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creacarti | Lee, Crea y Apoya</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [v-cloak] { display: none; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        body { transition: background-color 0.3s, color 0.3s; }
+        .dark-mode { background-color: #0f172a; color: #f8fafc; }
+        .dark-mode .bg-white { background-color: #1e293b !important; color: #f1f5f9; }
+        .dark-mode h2, .dark-mode h3 { color: #f1f5f9 !important; }
+        .dark-mode .bg-slate-50 { background-color: #0f172a !important; }
+        .dark-mode .border { border-color: #334155 !important; }
+        .dark-mode input, .dark-mode textarea { background-color: #334155 !important; color: white; border-color: #475569; }
+        .webtoon-container { width: 100%; height: 80vh; border-radius: 1.5rem; overflow: hidden; background: #000; border: 2px solid #4f46e5; }
+        .donation-bar { background: linear-gradient(to right, #6366f1, #a855f7); }
+        .tag-pill { cursor: pointer; transition: all 0.2s; }
+        .tag-pill.active { background-color: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; }
+    </style>
+</head>
+<body :class="{'dark-mode': isDark}" class="bg-slate-50 font-sans antialiased text-slate-900">
+
+<div id="app" v-cloak class="min-h-screen">
+    <nav class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-sm">
+        <h1 @click="view = 'explore'" class="text-2xl font-black text-indigo-600 cursor-pointer tracking-tighter uppercase">CREACARTI</h1>
+        <div class="flex gap-4 items-center font-bold text-sm">
+            <button @click="toggleTheme" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600">
+                <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'"></i>
+            </button>
+            <button @click="view = 'explore'" :class="view === 'explore' ? 'text-indigo-600' : 'text-slate-400'">Explorar</button>
+            <template v-if="user">
+                <button @click="view = 'dashboard'" :class="view === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'">Panel</button>
+                <button @click="view = 'profile'" :class="view === 'profile' ? 'text-indigo-600' : 'text-slate-400'">Perfil</button>
+                <div class="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
+                    <img v-if="profile.avatar_url" :src="profile.avatar_url" class="w-6 h-6 rounded-full object-cover">
+                    <span class="text-xs text-indigo-700 font-bold">{{ profile.nombre_usuario || 'Usuario' }}</span>
+                    <button @click="handleLogout" class="text-red-500 ml-2"><i class="fas fa-power-off"></i></button>
+                </div>
+            </template>
+            <button v-else @click="view = 'auth'" class="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl shadow-lg">Entrar</button>
+        </div>
+    </nav>
+
+    <main v-show="view === 'explore'" class="max-w-7xl mx-auto p-6">
+        <header class="mb-8 py-10 text-center md:text-left">
+            <h2 class="text-4xl font-black mb-2 tracking-tighter">🌱 Descubrimiento Justo</h2>
+            <div class="flex flex-wrap gap-2 mt-6">
+                <button @click="tagFiltro = null" :class="!tagFiltro ? 'active' : ''" class="tag-pill px-4 py-2 rounded-full border bg-white text-[10px] font-black uppercase">Todos</button>
+                <button v-for="tag in tagsDisponibles" :key="tag" @click="tagFiltro = tag" :class="tagFiltro === tag ? 'active' : ''" class="tag-pill px-4 py-2 rounded-full border bg-white text-[10px] font-black uppercase">{{ tag }}</button>
+            </div>
+        </header>
+
+        <div v-if="loading" class="text-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-indigo-200"></i></div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div v-for="obra in filteredObras" :key="obra.id" class="group bg-white rounded-[2rem] overflow-hidden border border-slate-100 hover:shadow-2xl flex flex-col relative">
+                <div class="h-64 bg-slate-100 overflow-hidden">
+                    <img v-if="obra.portada_url" :src="obra.portada_url" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+                </div>
+                <div class="p-6 flex-grow">
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        <span v-for="t in obra.tags" :key="t" class="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-500 border">{{ t }}</span>
+                    </div>
+                    <h3 class="text-xl font-black mb-2 tracking-tight">{{ obra.titulo }}</h3>
+                    <p class="text-sm text-slate-400 line-clamp-2">{{ obra.descripcion }}</p>
+                </div>
+                <div class="p-6 pt-0"><button @click="abrirObra(obra)" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs">Leer</button></div>
+            </div>
+        </div>
+    </main>
+
+    <main v-if="view === 'dashboard'" class="max-w-6xl mx-auto p-6 py-12">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-4xl font-black tracking-tighter">Panel Creador</h2>
+            <button @click="abrirCrearObra" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg">NUEVA OBRA</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="lg:col-span-1 space-y-4">
+                <div v-for="o in obrasPropias" :key="o.id" class="bg-white p-6 border-2 rounded-3xl cursor-pointer" :class="obraParaCapitulo?.id === o.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100'" @click="prepararCapitulo(o)">
+                    <p class="font-black">{{ o.titulo }}</p>
+                    <div class="flex gap-3 mt-4">
+                        <button @click.stop="abrirEditarObra(o)" class="text-indigo-600 text-xs font-black uppercase">Editar</button>
+                        <button @click.stop="eliminarObra(o.id)" class="text-red-400 text-xs font-black uppercase">Borrar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="lg:col-span-2">
+                <div v-if="obraParaCapitulo" class="bg-white p-10 rounded-[3rem] border shadow-2xl">
+                    <h3 class="text-2xl font-black text-indigo-600 italic mb-8">Capítulo para: {{ obraParaCapitulo.titulo }}</h3>
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-4 gap-4">
+                            <input v-model="nuevoCap.titulo" placeholder="Título" class="col-span-3 p-5 bg-slate-50 rounded-2xl outline-none font-bold">
+                            <input v-model.number="nuevoCap.orden" type="number" class="p-5 bg-slate-50 rounded-2xl outline-none text-center font-black">
+                        </div>
+                        <div v-if="obraParaCapitulo.tipo !== 'libro'" class="p-5 bg-indigo-50 rounded-2xl border-2 border-indigo-100">
+                            <input v-model="nuevoCap.link_externo" placeholder="Link del Webtoon (https://...)" class="w-full p-4 bg-white rounded-xl outline-none text-sm font-bold shadow-sm">
+                        </div>
+                        <textarea v-model="nuevoCap.contenido" placeholder="Texto de la historia..." class="w-full p-6 bg-slate-50 rounded-[2rem] outline-none min-h-[300px] font-serif text-lg" rows="8"></textarea>
+                        <button @click="subirCapitulo" class="w-full bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-widest">Publicar Capítulo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showModalObra" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+            <div class="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div class="space-y-6">
+                    <div class="flex gap-6 items-center">
+                        <div class="w-24 h-32 bg-slate-100 rounded-2xl overflow-hidden shrink-0 relative border-2 border-dashed border-slate-300">
+                            <img v-if="formObra.portada_url" :src="formObra.portada_url" class="w-full h-full object-cover">
+                            <label class="absolute inset-0 cursor-pointer flex items-center justify-center">
+                                <i v-if="!formObra.portada_url" class="fas fa-camera text-slate-300"></i>
+                                <input type="file" class="hidden" @change="e => subirImagenStorage(e, 'portadas')">
+                            </label>
+                        </div>
+                        <input v-model="formObra.titulo" placeholder="Título" class="flex-grow p-5 bg-slate-50 rounded-2xl outline-none font-black text-xl">
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button v-for="tag in tagsDisponibles" :key="tag" @click="toggleTag(tag)" :class="formObra.tags.includes(tag) ? 'active' : ''" class="tag-pill px-3 py-1 border rounded-xl bg-slate-50 text-[10px] font-black uppercase">{{ tag }}</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <button v-for="t in ['libro', 'webtoon', 'comic']" @click="formObra.tipo = t" :class="formObra.tipo === t ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase">{{ t }}</button>
+                    </div>
+                    <textarea v-model="formObra.descripcion" placeholder="Sinopsis..." class="w-full p-5 bg-slate-50 rounded-2xl outline-none min-h-[100px]"></textarea>
+                    <div class="flex gap-4">
+                        <button @click="cerrarModalObra" class="flex-1 font-black uppercase text-xs">Cancelar</button>
+                        <button @click="editMode ? guardarCambiosObra() : crearObra()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-xs">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main v-if="view === 'reader'" class="max-w-6xl mx-auto py-12 px-4">
+        <button @click="view = 'explore'" class="mb-8 text-slate-400 hover:text-indigo-600 transition flex items-center gap-2 font-black text-xs uppercase"><i class="fas fa-chevron-left"></i> VOLVER</button>
+        <div v-if="obraActiva" class="bg-white rounded-[3rem] shadow-2xl overflow-hidden border">
+            <div class="p-10 border-b flex justify-between items-center">
+                <div>
+                    <h2 class="text-4xl font-black tracking-tighter mb-2">{{ obraActiva.titulo }}</h2>
+                    <p v-if="capitulos.length > 0" class="text-indigo-600 font-black uppercase text-xs">Cap. {{ capituloActualIndex + 1 }}: {{ capitulos[capituloActualIndex].titulo_capitulo }}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="cambiarCapitulo(-1)" :disabled="capituloActualIndex === 0" class="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-20 transition hover:bg-slate-50"><i class="fas fa-chevron-left"></i></button>
+                    <button @click="cambiarCapitulo(1)" :disabled="capituloActualIndex === capitulos.length - 1" class="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-20 transition hover:bg-slate-50"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="min-h-[400px]">
+                <div v-if="capitulos.length > 0">
+                    <div v-if="obraActiva.tipo !== 'libro' && capitulos[capituloActualIndex].link_externo" class="p-4">
+                        <div class="webtoon-container shadow-2xl"><iframe :src="capitulos[capituloActualIndex].link_externo" class="w-full h-full border-none"></iframe></div>
+                    </div>
+                    <div v-if="obraActiva.tipo === 'libro'" class="p-12 prose dark:prose-invert max-w-none text-xl leading-relaxed font-serif whitespace-pre-wrap">{{ capitulos[capituloActualIndex].contenido_texto }}</div>
+                </div>
+            </div>
+            <div class="p-10 flex justify-between border-t bg-slate-50/20">
+                <button @click="cambiarCapitulo(-1)" :disabled="capituloActualIndex === 0" class="flex items-center gap-3 font-black uppercase text-[10px] disabled:opacity-20"><i class="fas fa-arrow-left"></i> Anterior</button>
+                <button @click="cambiarCapitulo(1)" :disabled="capituloActualIndex === capitulos.length - 1" class="flex items-center gap-3 font-black uppercase text-[10px] disabled:opacity-20 text-indigo-600">Siguiente <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="donation-bar p-12 text-white flex flex-col items-center text-center">
+                <h3 class="text-2xl font-black mb-6 italic tracking-tight">Apoya al autor de esta obra</h3>
+                <div class="flex gap-4">
+                    <button v-for="monto in [1, 5, 10]" @click="registrarDonacion(monto)" class="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black hover:scale-110 transition shadow-xl text-lg">${{ monto }}</button>
+                </div>
+            </div>
+            <div class="p-10 border-t bg-white">
+                <h3 class="text-xl font-black mb-6 uppercase italic">Comentarios</h3>
+                <div v-if="user" class="mb-8 flex gap-4">
+                    <textarea v-model="nuevoComentario" placeholder="Escribe un comentario..." class="flex-grow p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-100 min-h-[80px] text-sm font-bold border-none shadow-inner"></textarea>
+                    <button @click="subirComentario" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black">Publicar</button>
+                </div>
+                <div class="space-y-4">
+                    <div v-for="c in comentarios" :key="c.id" class="p-5 rounded-3xl bg-slate-50 border border-slate-100">
+                        <p class="text-[10px] font-black text-indigo-600 mb-1 uppercase tracking-widest">{{ c.usuario_nombre }}</p>
+                        <p class="text-sm font-bold leading-relaxed">{{ c.mensaje }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main v-if="view === 'profile'" class="max-w-2xl mx-auto p-6 py-12">
+        <div class="bg-white rounded-[3rem] shadow-2xl p-10 text-center border">
+            <div class="relative w-32 h-32 mx-auto mb-6">
+                <img :src="profile.avatar_url || 'https://via.placeholder.com/150'" class="w-full h-full rounded-3xl object-cover shadow-xl border-4 border-white">
+                <label class="absolute -bottom-2 -right-2 bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer">
+                    <i class="fas fa-camera"></i>
+                    <input type="file" class="hidden" @change="e => subirImagenStorage(e, 'avatares')" accept="image/*">
+                </label>
+            </div>
+            <div class="space-y-6 text-left">
+                <input v-model="profile.nombre_usuario" placeholder="Nombre Artístico" class="w-full p-5 border rounded-3xl outline-none font-bold">
+                <textarea v-model="profile.biografia" placeholder="Biografía..." class="w-full p-5 border rounded-3xl outline-none min-h-[120px]" rows="4"></textarea>
+                <button @click="saveProfile" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl uppercase text-xs">Guardar Cambios</button>
+            </div>
+        </div>
+    </main>
+
+    <main v-if="view === 'auth'" class="max-w-md mx-auto mt-24 p-12 bg-white rounded-[3.5rem] shadow-2xl text-center border">
+        <h2 class="text-3xl font-black mb-8 text-indigo-600 uppercase">CREACARTI</h2>
+        <div class="space-y-4">
+            <input v-model="auth.email" type="email" placeholder="Email" class="w-full p-5 bg-slate-50 rounded-2xl outline-none font-bold">
+            <input v-model="auth.password" type="password" placeholder="Contraseña" class="w-full p-5 bg-slate-50 rounded-2xl outline-none text-center">
+            <button @click="handleLogin" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs">Entrar</button>
+            <button @click="handleRegister" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs">Registrarme</button>
+        </div>
+    </main>
+</div>
+
+<script>
+    const { createApp } = Vue;
+    const SUPABASE_URL = 'https://upjrizgkkcjugwlflnuq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwanJpemdra2NqdWd3bGZsbnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMjkyODIsImV4cCI6MjA4NDcwNTI4Mn0.TbeRqxWNip0_2n_mcoRO9_DABQRihvtB7Oz3TBtHtA4';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    createApp({
+        data() {
+            return {
+                view: 'explore', isDark: false, user: null, loading: false, obras: [], obrasPropias: [], capitulos: [], comentarios: [],
+                nuevoComentario: '', userLikes: [], profile: { nombre_usuario: 'Usuario', biografia: '', avatar_url: '' },
+                obraActiva: null, capituloActualIndex: 0, showModalObra: false, editMode: false, tagFiltro: null,
+                tagsDisponibles: ['fantasía', 'terror', 'comedia', 'romance', 'acción', '+18', 'ciencia ficción', 'drama', 'misterio'],
+                obraParaCapitulo: null, formObra: { id: null, titulo: '', tipo: 'libro', descripcion: '', tags: [], portada_url: '' },
+                auth: { email: '', password: '' }, nuevoCap: { titulo: '', orden: 1, contenido: '', link_externo: '' }
+            }
+        },
+        computed: {
+            filteredObras() {
+                if(!this.tagFiltro) return this.obras;
+                return this.obras.filter(o => o.tags && o.tags.includes(this.tagFiltro));
+            }
+        },
+        async mounted() {
+            this.isDark = localStorage.getItem('theme') === 'dark';
+            const cached = localStorage.getItem('creacarti_cached_profile');
+            if(cached) this.profile = JSON.parse(cached);
+            const { data: { user } } = await _supabase.auth.getUser();
+            this.user = user;
+            await this.fetchObras();
+            if(this.user) { await this.fetchProfile(); this.fetchObrasPropias(); this.fetchUserLikes(); }
+            _supabase.auth.onAuthStateChange(async (event, session) => {
+                this.user = session?.user || null;
+                if(this.user) await this.fetchProfile();
+            });
+        },
+        methods: {
+            toggleTheme() { this.isDark = !this.isDark; localStorage.setItem('theme', this.isDark ? 'dark' : 'light'); },
+            async subirImagenStorage(e, bucket) {
+                const file = e.target.files[0];
+                if (!file || !this.user) return;
+                try {
+                    const ext = file.name.split('.').pop();
+                    const path = `${this.user.id}/${Date.now()}.${ext}`;
+                    const { data, error } = await _supabase.storage.from(bucket).upload(path, file);
+                    if (error) throw error;
+                    const { data: { publicUrl } } = _supabase.storage.from(bucket).getPublicUrl(path);
+                    if(bucket === 'avatares') { this.profile.avatar_url = publicUrl; await this.saveProfile(); }
+                    else { this.formObra.portada_url = publicUrl; }
+                } catch (err) { alert(err.message); }
+            },
+            async fetchProfile() {
+                const { data } = await _supabase.from('perfiles').select('*').eq('id', this.user.id).maybeSingle();
+                if(data) { this.profile = data; localStorage.setItem('creacarti_cached_profile', JSON.stringify(data)); }
+            },
+            async saveProfile() {
+                const { error } = await _supabase.from('perfiles').upsert({ id: this.user.id, nombre_usuario: this.profile.nombre_usuario, biografia: this.profile.biografia, avatar_url: this.profile.avatar_url });
+                if(!error) { localStorage.setItem('creacarti_cached_profile', JSON.stringify(this.profile)); alert("¡Perfil guardado!"); }
+            },
+            async fetchObras() { this.loading = true; const { data } = await _supabase.from('obras').select('*').order('fecha_creacion', { ascending: false }); this.obras = data || []; this.loading = false; },
+            async fetchObrasPropias() { const { data } = await _supabase.from('obras').select('*').eq('autor_id', this.user.id); this.obrasPropias = data || []; },
+            abrirCrearObra() { this.editMode = false; this.formObra = { titulo: '', tipo: 'libro', descripcion: '', tags: [], portada_url: '' }; this.showModalObra = true; },
+            abrirEditarObra(obra) { this.editMode = true; this.formObra = { ...obra, tags: obra.tags || [] }; this.showModalObra = true; },
+            cerrarModalObra() { this.showModalObra = false; },
+            toggleTag(tag) {
+                if (this.formObra.tags.includes(tag)) this.formObra.tags = this.formObra.tags.filter(t => t !== tag);
+                else this.formObra.tags.push(tag);
+            },
+            prepararCapitulo(obra) { this.obraParaCapitulo = obra; this.nuevoCap = { titulo: '', orden: 1, contenido: '', link_externo: '' }; },
+            async crearObra() {
+                const { error } = await _supabase.from('obras').insert({ autor_id: this.user.id, titulo: this.formObra.titulo, tipo: this.formObra.tipo, descripcion: this.formObra.descripcion, tags: this.formObra.tags, portada_url: this.formObra.portada_url });
+                if(!error) { this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias(); }
+            },
+            async guardarCambiosObra() {
+                const { error } = await _supabase.from('obras').update(this.formObra).eq('id', this.formObra.id);
+                if(!error) { this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias(); }
+            },
+            async eliminarObra(id) { if(confirm("¿Borrar obra?")) { await _supabase.from('obras').delete().eq('id', id); this.fetchObras(); this.fetchObrasPropias(); } },
+            async subirCapitulo() {
+                const { error } = await _supabase.from('capitulos').insert({ obra_id: this.obraParaCapitulo.id, orden: this.nuevoCap.orden, titulo_capitulo: this.nuevoCap.titulo, contenido_texto: this.nuevoCap.contenido, link_externo: this.nuevoCap.link_externo });
+                if(!error) alert("¡Publicado!");
+            },
+            async abrirObra(obra) { this.obraActiva = obra; this.view = 'reader'; this.capituloActualIndex = 0; await this.fetchCapitulosYComentarios(obra.id); },
+            async fetchCapitulosYComentarios(obraId) {
+                const [caps, coms] = await Promise.all([ _supabase.from('capitulos').select('*').eq('obra_id', obraId).order('orden', { ascending: true }), _supabase.from('comentarios').select('*').eq('obra_id', obraId).order('fecha_comentario', { ascending: false }) ]);
+                this.capitulos = caps.data || []; this.comentarios = coms.data || [];
+            },
+            cambiarCapitulo(delta) {
+                const nuevo = this.capituloActualIndex + delta;
+                if(nuevo >= 0 && nuevo < this.capitulos.length) { this.capituloActualIndex = nuevo; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            },
+            async subirComentario() {
+                const { error } = await _supabase.from('comentarios').insert({ obra_id: this.obraActiva.id, usuario_id: this.user.id, usuario_nombre: this.profile.nombre_usuario || 'Lector', mensaje: this.nuevoComentario });
+                if(!error) { this.nuevoComentario = ''; this.fetchComentarios(); }
+            },
+            async fetchComentarios() { const { data } = await _supabase.from('comentarios').select('*').eq('obra_id', this.obraActiva.id).order('fecha_comentario', { ascending: false }); this.comentarios = data || []; },
+            async registrarDonacion(monto) { if(!this.user) { this.view = 'auth'; return; } await _supabase.from('donaciones').insert({ donante_id: this.user.id, creador_id: this.obraActiva.autor_id, monto: monto, obra_id: this.obraActiva.id }); alert("¡Gracias!"); },
+            async fetchUserLikes() { if(!this.user) return; const { data } = await _supabase.from('interacciones').select('obra_id').eq('usuario_id', this.user.id); if(data) this.userLikes = data.map(l => l.obra_id); },
+            async toggleLike(obraId) {
+                if(!this.user) { this.view = 'auth'; return; }
+                if(this.userLikes.includes(obraId)) { await _supabase.from('interacciones').delete().eq('usuario_id', this.user.id).eq('obra_id', obraId); this.userLikes = this.userLikes.filter(id => id !== obraId); } 
+                else { await _supabase.from('interacciones').insert({ usuario_id: this.user.id, obra_id: obraId }); this.userLikes.push(obraId); }
+            },
+            async handleLogin() { const { error } = await _supabase.auth.signInWithPassword(this.auth); if(!error) location.reload(); else alert(error.message); },
+            async handleRegister() { await _supabase.auth.signUp(this.auth); alert("Revisa tu email."); },
+            async handleLogout() { await _supabase.auth.signOut(); location.reload(); }
+        }
+    }).mount('#app')
+</script>
+</body>
+</html>
