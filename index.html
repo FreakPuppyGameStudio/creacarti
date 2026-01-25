@@ -3,222 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creacarti | Lee, Crea y Apoya</title>
+    <title>Creacarti | Studio THE CREATOR</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap');
+        
+        :root {
+            --vn-cyan: #00f2ff;
+            --vn-bg: #020617;
+            --vn-panel: #0f172a;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--vn-bg); color: #f8fafc; }
         [v-cloak] { display: none; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        body { transition: background-color 0.3s, color 0.3s; }
-        .dark-mode { background-color: #0f172a; color: #f8fafc; }
-        .dark-mode .bg-white { background-color: #1e293b !important; color: #f1f5f9; }
-        .dark-mode h2, .dark-mode h3 { color: #f1f5f9 !important; }
-        .dark-mode .bg-slate-50 { background-color: #0f172a !important; }
-        .dark-mode .border { border-color: #334155 !important; }
-        .dark-mode input, .dark-mode textarea { background-color: #334155 !important; color: white; border-color: #475569; }
-        .webtoon-container { width: 100%; height: 80vh; border-radius: 1.5rem; overflow: hidden; background: #000; border: 2px solid #4f46e5; }
-        .donation-bar { background: linear-gradient(to right, #6366f1, #a855f7); }
-        .tag-pill { cursor: pointer; transition: all 0.2s; }
-        .tag-pill.active { background-color: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; }
+        
+        .vn-card { 
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid var(--vn-cyan);
+            border-radius: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+        }
+
+        .vn-button {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            transition: all 0.3s ease;
+        }
+        .vn-button:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
+        .webtoon-container { 
+            width: 100%; height: 80vh; border-radius: 1.5rem; overflow: hidden; 
+            background: #000; border: 3px solid var(--vn-cyan); 
+        }
+
+        .stat-bubble { 
+            background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(0, 242, 255, 0.2);
+            border-radius: 1.5rem; padding: 1.5rem; 
+        }
+
+        .tag-pill { cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 10px; font-weight: 800; }
+        .tag-pill.active { background-color: var(--vn-cyan) !important; color: #000 !important; }
     </style>
 </head>
-<body :class="{'dark-mode': isDark}" class="bg-slate-50 font-sans antialiased text-slate-900">
+<body class="antialiased">
 
-<div id="app" v-cloak class="min-h-screen">
-    <nav class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-sm">
-        <h1 @click="view = 'explore'" class="text-2xl font-black text-indigo-600 cursor-pointer tracking-tighter uppercase">CREACARTI</h1>
-        <div class="flex gap-4 items-center font-bold text-sm">
-            <button @click="toggleTheme" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 transition-transform active:scale-90">
-                <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'"></i>
-            </button>
-            <button @click="view = 'explore'" :class="view === 'explore' ? 'text-indigo-600' : 'text-slate-400'">Explorar</button>
+<div id="app" v-cloak class="min-h-screen flex flex-col">
+    <nav class="bg-slate-900/80 backdrop-blur-xl border-b border-cyan-500/20 sticky top-0 z-50 px-8 py-5 flex justify-between items-center">
+        <h1 @click="view = 'explore'" class="text-2xl font-black text-cyan-400 cursor-pointer tracking-tighter uppercase italic">CREACARTI</h1>
+        <div class="flex gap-6 items-center font-bold text-xs uppercase tracking-widest">
+            <button @click="view = 'explore'" :class="view === 'explore' ? 'text-cyan-400' : 'text-slate-400'">Explorar</button>
             <template v-if="user">
-                <button @click="view = 'dashboard'" :class="view === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'">Panel</button>
-                <button @click="view = 'profile'" :class="view === 'profile' ? 'text-indigo-600' : 'text-slate-400'">Perfil</button>
-                <div class="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
-                    <img v-if="profile.avatar_url" :src="profile.avatar_url" class="w-6 h-6 rounded-full object-cover">
-                    <span class="text-xs text-indigo-700 font-bold">{{ profile.nombre_usuario || 'Cargando...' }}</span>
-                    <button @click="handleLogout" class="text-red-500 ml-2"><i class="fas fa-power-off"></i></button>
+                <button @click="view = 'library'" :class="view === 'library' ? 'text-cyan-400' : 'text-slate-400'">Biblioteca</button>
+                <button @click="view = 'community'" :class="view === 'community' ? 'text-cyan-400' : 'text-slate-400'">Comunidad</button>
+                <button @click="view = 'dashboard'" :class="view === 'dashboard' ? 'text-cyan-400' : 'text-slate-400'">Panel</button>
+                <div class="flex items-center gap-3 bg-slate-800 px-4 py-2 rounded-xl border border-cyan-500/30 cursor-pointer" @click="view = 'profile'">
+                    <img v-if="profile.avatar_url" :src="profile.avatar_url" class="w-8 h-8 rounded-lg object-cover">
+                    <span class="text-cyan-400">{{ profile.nombre_usuario || '...' }}</span>
+                    <button @click.stop="handleLogout" class="text-red-400 ml-2"><i class="fas fa-power-off"></i></button>
                 </div>
             </template>
-            <button v-else @click="view = 'auth'" class="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl shadow-lg">Entrar</button>
+            <button v-else @click="view = 'auth'" class="vn-button text-white px-8 py-3 rounded-xl font-bold">ACCEDER</button>
         </div>
     </nav>
 
-    <main v-show="view === 'explore'" class="max-w-7xl mx-auto p-6">
-        <header class="mb-8 py-10 text-center md:text-left">
-            <h2 class="text-4xl font-black mb-2 tracking-tighter">🌱 Descubrimiento Justo</h2>
-            <div class="flex flex-wrap gap-2 mt-6">
-                <button @click="tagFiltro = null" :class="!tagFiltro ? 'active' : ''" class="tag-pill px-4 py-2 rounded-full border bg-white text-[10px] font-black uppercase">Todos</button>
-                <button v-for="tag in tagsDisponibles" :key="tag" @click="tagFiltro = tag" :class="tagFiltro === tag ? 'active' : ''" class="tag-pill px-4 py-2 rounded-full border bg-white text-[10px] font-black uppercase">{{ tag }}</button>
+    <main v-show="view === 'explore'" class="max-w-7xl mx-auto p-8 w-full">
+        <header class="mb-12 py-10">
+            <h2 class="text-5xl font-black mb-4 tracking-tighter italic">Mundos <span class="text-cyan-400">Virtuales</span></h2>
+            <div class="flex flex-wrap gap-3 mt-8">
+                <button @click="tagFiltro = null" :class="!tagFiltro ? 'active' : ''" class="tag-pill px-6 py-3 rounded-xl border border-slate-700 bg-slate-900/50">Todos</button>
+                <button v-for="tag in tagsDisponibles" :key="tag" @click="tagFiltro = tag" :class="tagFiltro === tag ? 'active' : ''" class="tag-pill px-6 py-3 rounded-xl border border-slate-700 bg-slate-900/50">{{ tag }}</button>
             </div>
         </header>
 
-        <div v-if="loading" class="text-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-indigo-200"></i></div>
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div v-for="obra in filteredObras" :key="obra.id" class="group bg-white rounded-[2rem] overflow-hidden border border-slate-100 hover:shadow-2xl flex flex-col relative transition-all duration-300">
-                <div class="h-64 bg-slate-100 overflow-hidden">
-                    <img v-if="obra.portada_url" :src="obra.portada_url" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+        <div v-if="loading" class="text-center py-20 text-cyan-400 text-5xl"><i class="fas fa-circle-notch fa-spin"></i></div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            <div v-for="obra in filteredObras" :key="obra.id" class="vn-card group overflow-hidden flex flex-col relative transition-all duration-300 hover:scale-[1.02]">
+                <button @click.stop="toggleBiblioteca(obra.id)" class="absolute top-5 left-5 z-10 w-10 h-10 rounded-xl flex items-center justify-center bg-slate-900/80 border border-cyan-500/30 shadow-lg" :class="userLibrary.includes(obra.id) ? 'text-cyan-400' : 'text-slate-500'">
+                    <i class="fas fa-bookmark"></i>
+                </button>
+                <button @click.stop="toggleLike(obra.id)" class="absolute top-5 right-5 z-10 w-10 h-10 rounded-xl flex items-center justify-center bg-slate-900/80 border border-cyan-500/30 shadow-lg" :class="userLikes.includes(obra.id) ? 'text-pink-500' : 'text-slate-500'">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <div class="h-80 bg-slate-800 overflow-hidden relative">
+                    <img v-if="obra.portada_url" :src="obra.portada_url" class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent"></div>
                 </div>
-                <div class="p-6 flex-grow">
-                    <div class="flex flex-wrap gap-1 mb-2">
-                        <span v-for="t in obra.tags" :key="t" class="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-500 border">{{ t }}</span>
+                <div class="p-8 -mt-12 relative z-10">
+                    <h3 class="text-2xl font-black mb-2 tracking-tight text-white">{{ obra.titulo }}</h3>
+                    <p class="text-sm text-slate-400 line-clamp-2 leading-relaxed">{{ obra.descripcion }}</p>
+                    <div class="mt-8 flex items-center justify-between">
+                        <span class="text-[10px] font-black text-cyan-400/60 uppercase tracking-widest"><i class="fas fa-eye mr-2"></i> {{ obra.vistas }}</span>
+                        <button @click="abrirObra(obra)" class="vn-button text-white px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest">Leer</button>
                     </div>
-                    <h3 class="text-xl font-black mb-2 tracking-tight">{{ obra.titulo }}</h3>
-                    <p class="text-sm text-slate-400 line-clamp-2">{{ obra.descripcion }}</p>
                 </div>
-                <div class="p-6 pt-0"><button @click="abrirObra(obra)" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs">Leer</button></div>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'dashboard'" class="max-w-6xl mx-auto p-6 py-12">
-        <div class="flex justify-between items-center mb-10">
-            <h2 class="text-4xl font-black tracking-tighter">Panel Creador</h2>
-            <button @click="abrirCrearObra" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg transition hover:scale-105 active:scale-95">NUEVA OBRA</button>
+    <main v-if="view === 'dashboard'" class="max-w-6xl mx-auto p-8 py-16 w-full">
+        <header class="flex justify-between items-end mb-12">
+            <div>
+                <h2 class="text-4xl font-black italic text-cyan-400">Studio <span class="text-white">THE CREATOR</span></h2>
+                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-2">Centro de Control de Proyectos</p>
+            </div>
+            <button @click="abrirCrearObra" class="vn-button text-white px-10 py-5 rounded-2xl font-black shadow-xl">INICIAR OBRA</button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div class="stat-bubble flex items-center gap-6">
+                <div class="w-16 h-16 vn-button rounded-xl flex items-center justify-center text-white text-2xl"><i class="fas fa-wallet"></i></div>
+                <div>
+                    <p class="text-3xl font-black text-white">${{ totalIngresos.toFixed(2) }}</p>
+                    <p class="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">Balance acumulado</p>
+                </div>
+            </div>
+            <div class="stat-bubble flex items-center gap-6">
+                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white text-2xl"><i class="fas fa-users"></i></div>
+                <div><p class="text-3xl font-black text-white">{{ followerCount }}</p><p class="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">Seguidores</p></div>
+            </div>
+            <div class="stat-bubble flex items-center gap-6">
+                <div class="w-16 h-16 bg-pink-600 rounded-xl flex items-center justify-center text-white text-2xl"><i class="fas fa-bolt"></i></div>
+                <div><p class="text-3xl font-black text-white">{{ totalVistas }}</p><p class="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">Vistas totales</p></div>
+            </div>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div class="lg:col-span-1 space-y-4">
-                <div v-for="o in obrasPropias" :key="o.id" class="bg-white p-6 border-2 rounded-3xl cursor-pointer" :class="obraParaCapitulo?.id === o.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100'" @click="prepararCapitulo(o)">
-                    <p class="font-black">{{ o.titulo }}</p>
-                    <div class="flex gap-3 mt-4">
-                        <button @click.stop="abrirEditarObra(o)" class="text-indigo-600 text-xs font-black uppercase">Editar</button>
-                        <button @click.stop="eliminarObra(o.id)" class="text-red-400 text-xs font-black uppercase">Borrar</button>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div class="space-y-4">
+                <div v-for="o in obrasPropias" :key="o.id" class="vn-card p-6 border-2 transition cursor-pointer" :class="obraParaCapitulo?.id === o.id ? 'border-cyan-400 bg-cyan-400/5' : 'border-slate-800'" @click="prepararCapitulo(o)">
+                    <p class="font-black text-lg text-white">{{ o.titulo }}</p>
+                    <div class="flex gap-4 mt-4">
+                        <button @click.stop="abrirEditarObra(o)" class="text-cyan-400 text-[10px] font-black uppercase">Editar</button>
+                        <button @click.stop="eliminarObra(o.id)" class="text-red-400 text-[10px] font-black uppercase">Borrar</button>
                     </div>
                 </div>
             </div>
             <div class="lg:col-span-2">
-                <div v-if="obraParaCapitulo" class="bg-white p-10 rounded-[3rem] border shadow-2xl">
-                    <h3 class="text-2xl font-black text-indigo-600 italic mb-8">Capítulo para: {{ obraParaCapitulo.titulo }}</h3>
+                <div v-if="obraParaCapitulo" class="vn-card p-12">
+                    <h3 class="text-2xl font-black mb-8 italic text-cyan-400">Transmitir para: {{ obraParaCapitulo.titulo }}</h3>
                     <div class="space-y-6">
-                        <div class="grid grid-cols-4 gap-4">
-                            <input v-model="nuevoCap.titulo" placeholder="Título" class="col-span-3 p-5 bg-slate-50 rounded-2xl outline-none font-bold">
-                            <input v-model.number="nuevoCap.orden" type="number" class="p-5 bg-slate-50 rounded-2xl outline-none text-center font-black">
+                        <div class="flex gap-4">
+                            <input v-model="nuevoCap.titulo" placeholder="Título" class="flex-grow p-5 bg-slate-900 rounded-xl border border-slate-700 outline-none font-bold text-white">
+                            <input v-model.number="nuevoCap.orden" type="number" class="w-24 p-5 bg-slate-900 rounded-xl border border-slate-700 outline-none text-center font-black text-white">
                         </div>
-                        <div v-if="obraParaCapitulo.tipo !== 'libro'" class="p-5 bg-indigo-50 rounded-2xl border-2 border-indigo-100">
-                            <input v-model="nuevoCap.link_externo" placeholder="Link del Webtoon (https://...)" class="w-full p-4 bg-white rounded-xl outline-none text-sm font-bold shadow-sm">
-                        </div>
-                        <textarea v-model="nuevoCap.contenido" placeholder="Texto de la historia..." class="w-full p-6 bg-slate-50 rounded-[2rem] outline-none min-h-[300px] font-serif text-lg" rows="8"></textarea>
-                        <button @click="subirCapitulo" class="w-full bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-widest shadow-xl">Publicar Capítulo</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="showModalObra" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-            <div class="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
-                <div class="space-y-6">
-                    <div class="flex gap-6 items-center">
-                        <div class="w-24 h-32 bg-slate-100 rounded-2xl overflow-hidden shrink-0 relative border-2 border-dashed border-slate-300">
-                            <img v-if="formObra.portada_url" :src="formObra.portada_url" class="w-full h-full object-cover">
-                            <label class="absolute inset-0 cursor-pointer flex items-center justify-center">
-                                <i v-if="!formObra.portada_url" class="fas fa-camera text-slate-300"></i>
-                                <input type="file" class="hidden" @change="e => subirImagenStorage(e, 'portadas')">
-                            </label>
-                        </div>
-                        <input v-model="formObra.titulo" placeholder="Título" class="flex-grow p-5 bg-slate-50 rounded-2xl outline-none font-black text-xl">
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="tag in tagsDisponibles" :key="tag" @click="toggleTag(tag)" :class="formObra.tags.includes(tag) ? 'active' : ''" class="tag-pill px-3 py-1 border rounded-xl bg-slate-50 text-[10px] font-black uppercase">{{ tag }}</button>
-                    </div>
-                    <div class="flex gap-2">
-                        <button v-for="t in ['libro', 'webtoon', 'comic']" @click="formObra.tipo = t" :class="formObra.tipo === t ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'" class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase">{{ t }}</button>
-                    </div>
-                    <textarea v-model="formObra.descripcion" placeholder="Sinopsis..." class="w-full p-5 bg-slate-50 rounded-2xl outline-none min-h-[100px]"></textarea>
-                    <div class="flex gap-4">
-                        <button @click="cerrarModalObra" class="flex-1 font-black uppercase text-xs">Cancelar</button>
-                        <button @click="editMode ? guardarCambiosObra() : crearObra()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-xs">Guardar</button>
+                        <input v-model="nuevoCap.link_externo" placeholder="URL Contenido Externo" class="w-full p-5 bg-slate-900 rounded-xl border border-slate-700 outline-none font-bold text-white">
+                        <textarea v-model="nuevoCap.contenido" placeholder="Texto..." class="w-full p-8 bg-slate-900 rounded-2xl outline-none min-h-[400px] font-serif text-xl border border-slate-700 text-white"></textarea>
+                        <button @click="subirCapitulo" class="w-full vn-button text-white py-6 rounded-2xl font-black uppercase tracking-widest shadow-xl">Publicar</button>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'reader'" class="max-w-6xl mx-auto py-12 px-4">
-        <button @click="view = 'explore'" class="mb-8 text-slate-400 hover:text-indigo-600 transition flex items-center gap-2 font-black text-xs uppercase"><i class="fas fa-chevron-left"></i> VOLVER</button>
-        <div v-if="obraActiva" class="bg-white rounded-[3rem] shadow-2xl overflow-hidden border">
-            <div class="p-10 border-b flex justify-between items-center">
+    <main v-if="view === 'reader'" class="max-w-6xl mx-auto py-12 px-6 w-full">
+        <button @click="view = 'explore'" class="mb-10 text-slate-500 hover:text-cyan-400 flex items-center gap-3 font-black text-[10px] uppercase tracking-widest"><i class="fas fa-arrow-left"></i> Volver</button>
+        <div v-if="obraActiva" class="vn-card overflow-hidden">
+            <div class="p-10 border-b border-cyan-500/20 flex justify-between items-center bg-slate-900/50">
                 <div>
-                    <h2 class="text-4xl font-black tracking-tighter mb-2">{{ obraActiva.titulo }}</h2>
-                    <p v-if="capitulos.length > 0" class="text-indigo-600 font-black uppercase text-xs">Cap. {{ capituloActualIndex + 1 }}: {{ capitulos[capituloActualIndex].titulo_capitulo }}</p>
+                    <h2 class="text-3xl font-black italic text-cyan-400">{{ obraActiva.titulo }}</h2>
+                    <p v-if="capitulos.length > 0" class="text-xs font-bold text-slate-400 uppercase mt-1 tracking-widest">Cap. {{ capituloActualIndex + 1 }}</p>
                 </div>
-                <div class="flex gap-2">
-                    <button @click="cambiarCapitulo(-1)" :disabled="capituloActualIndex === 0" class="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-20 transition hover:bg-slate-50"><i class="fas fa-chevron-left"></i></button>
-                    <button @click="cambiarCapitulo(1)" :disabled="capituloActualIndex === capitulos.length - 1" class="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-20 transition hover:bg-slate-50"><i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
-            <div class="min-h-[400px]">
-                <div v-if="capitulos.length > 0">
-                    <div v-if="obraActiva.tipo !== 'libro' && capitulos[capituloActualIndex].link_externo" class="p-4">
-                        <div class="webtoon-container shadow-2xl"><iframe :src="capitulos[capituloActualIndex].link_externo" class="w-full h-full border-none"></iframe></div>
-                    </div>
-                    <div v-if="obraActiva.tipo === 'libro'" class="p-12 prose dark:prose-invert max-w-none text-xl leading-relaxed font-serif whitespace-pre-wrap">{{ capitulos[capituloActualIndex].contenido_texto }}</div>
-                </div>
-            </div>
-            <div class="p-10 flex justify-between border-t bg-slate-50/20">
-                <button @click="cambiarCapitulo(-1)" :disabled="capituloActualIndex === 0" class="flex items-center gap-3 font-black uppercase text-[10px] disabled:opacity-20"><i class="fas fa-arrow-left"></i> Anterior</button>
-                <button @click="cambiarCapitulo(1)" :disabled="capituloActualIndex === capitulos.length - 1" class="flex items-center gap-3 font-black uppercase text-[10px] disabled:opacity-20 text-indigo-600">Siguiente <i class="fas fa-arrow-right"></i></button>
-            </div>
-            <div class="donation-bar p-12 text-white flex flex-col items-center text-center">
-                <h3 class="text-2xl font-black mb-6 italic tracking-tight">Apoya al autor de esta obra</h3>
                 <div class="flex gap-4">
-                    <button v-for="monto in [1, 5, 10]" @click="registrarDonacion(monto)" class="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black hover:scale-110 transition shadow-xl text-lg">${{ monto }}</button>
+                    <button @click="cambiarCapitulo(-1)" :disabled="capituloActualIndex === 0" class="w-12 h-12 rounded-xl border border-slate-700 bg-slate-900 flex items-center justify-center disabled:opacity-20 transition"><i class="fas fa-chevron-left"></i></button>
+                    <button @click="cambiarCapitulo(1)" :disabled="capituloActualIndex === capitulos.length - 1" class="w-12 h-12 rounded-xl border border-slate-700 bg-slate-900 flex items-center justify-center disabled:opacity-20 transition"><i class="fas fa-chevron-right"></i></button>
                 </div>
             </div>
-            <div class="p-10 border-t bg-white">
-                <h3 class="text-xl font-black mb-6 uppercase italic">Comentarios</h3>
-                <div v-if="user" class="mb-8 flex gap-4">
-                    <textarea v-model="nuevoComentario" placeholder="Escribe un comentario..." class="flex-grow p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-100 min-h-[80px] text-sm font-bold border-none shadow-inner"></textarea>
-                    <button @click="subirComentario" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black">Publicar</button>
+            
+            <div class="min-h-[500px]">
+                <div v-if="capitulos.length > 0">
+                    <div v-if="obraActiva.tipo !== 'libro' && capitulos[capituloActualIndex].link_externo" class="p-6">
+                        <div class="webtoon-container shadow-2xl relative">
+                            <iframe :src="capitulos[capituloActualIndex].link_externo" class="w-full h-full border-none"></iframe>
+                        </div>
+                        <div class="mt-8 flex justify-center">
+                            <a :href="capitulos[capituloActualIndex].link_externo" target="_blank" class="vn-button text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest">
+                                <i class="fas fa-external-link-alt mr-3"></i> Leer en página original
+                            </a>
+                        </div>
+                    </div>
+                    <div v-if="obraActiva.tipo === 'libro'" class="p-20 text-xl leading-relaxed whitespace-pre-wrap text-slate-200">{{ capitulos[capituloActualIndex].contenido_texto }}</div>
                 </div>
-                <div class="space-y-4">
-                    <div v-for="c in comentarios" :key="c.id" class="p-5 rounded-3xl bg-slate-50 border border-slate-100">
-                        <p class="text-[10px] font-black text-indigo-600 mb-1 uppercase tracking-widest">{{ c.usuario_nombre }}</p>
-                        <p class="text-sm font-bold leading-relaxed">{{ c.mensaje }}</p>
+            </div>
+
+            <div class="vn-button p-16 text-white text-center">
+                <h3 class="text-3xl font-black mb-8 italic uppercase tracking-tighter">Inyectar apoyo al creador</h3>
+                <div class="flex justify-center gap-6">
+                    <button v-for="monto in [1, 5, 10, 50]" @click="registrarDonacion(monto)" class="bg-white text-slate-900 w-24 h-24 rounded-2xl font-black hover:scale-110 transition shadow-2xl flex flex-col items-center justify-center">
+                        <span class="text-[9px] uppercase opacity-50 mb-1">Dona</span>
+                        ${{ monto }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main v-if="view === 'library'" class="max-w-7xl mx-auto p-8 py-16 w-full">
+        <h2 class="text-4xl font-black mb-12 italic text-white uppercase tracking-tighter">Historias <span class="text-cyan-400">Sincronizadas</span></h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            <div v-for="obra in libraryObras" :key="obra.id" class="vn-card overflow-hidden flex flex-col">
+                <div class="h-48 bg-slate-800"><img v-if="obra.portada_url" :src="obra.portada_url" class="w-full h-full object-cover opacity-60"></div>
+                <div class="p-6">
+                    <h3 class="text-xl font-bold mb-4 text-white">{{ obra.titulo }}</h3>
+                    <div class="flex gap-2">
+                        <button @click="abrirObra(obra)" class="flex-1 vn-button text-white py-2 rounded-lg font-bold text-xs uppercase">Abrir</button>
+                        <button @click="toggleBiblioteca(obra.id)" class="px-4 border border-red-500/30 text-red-500 rounded-lg"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'profile'" class="max-w-2xl mx-auto p-6 py-12">
-        <div class="bg-white rounded-[3rem] shadow-2xl p-10 text-center border">
-            <div class="relative w-32 h-32 mx-auto mb-6">
-                <img :src="profile.avatar_url || 'https://via.placeholder.com/150'" class="w-full h-full rounded-3xl object-cover shadow-xl border-4 border-white">
-                <label class="absolute -bottom-2 -right-2 bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer shadow-md hover:scale-110 transition">
-                    <i class="fas fa-camera"></i>
-                    <input type="file" class="hidden" @change="e => subirImagenStorage(e, 'avatares')" accept="image/*">
-                </label>
-            </div>
-            <div class="space-y-6 text-left">
-                <input v-model="profile.nombre_usuario" placeholder="Nombre Artístico" class="w-full p-5 border rounded-3xl outline-none font-bold">
-                <textarea v-model="profile.biografia" placeholder="Biografía..." class="w-full p-5 border rounded-3xl outline-none min-h-[120px]" rows="4"></textarea>
-                <button @click="saveProfile" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl uppercase text-xs">Guardar Cambios</button>
+    <main v-if="view === 'community'" class="max-w-4xl mx-auto p-8 py-16 w-full">
+        <h2 class="text-4xl font-black mb-10 italic text-white uppercase">Red de <span class="text-cyan-400">Artistas</span></h2>
+        <div class="bg-slate-900/50 p-4 rounded-3xl border border-cyan-400/20 flex gap-4 mb-16">
+            <input v-model="searchQuery" @input="buscarPerfiles" placeholder="Sintonizar autor..." class="flex-grow bg-transparent p-4 outline-none font-bold text-white">
+            <button class="vn-button px-10 rounded-2xl text-white font-bold"><i class="fas fa-satellite"></i></button>
+        </div>
+        <div class="space-y-6">
+            <div v-for="perfil in perfilesEncontrados" :key="perfil.id" class="vn-card p-8 flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <img :src="perfil.avatar_url || 'https://via.placeholder.com/150'" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-400/20">
+                    <div><h4 class="font-bold text-2xl text-white italic">{{ perfil.nombre_usuario }}</h4><p class="text-xs text-slate-500 italic">{{ perfil.biografia }}</p></div>
+                </div>
+                <button @click="toggleSeguir(perfil.id)" :class="userFollowing.includes(perfil.id) ? 'bg-slate-800 text-slate-500' : 'vn-button text-white'" class="px-10 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest">
+                    {{ userFollowing.includes(perfil.id) ? 'Siguiendo' : 'Seguir' }}
+                </button>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'auth'" class="max-w-md mx-auto mt-24 p-12 bg-white rounded-[3.5rem] shadow-2xl text-center border transition-all">
-        <h2 class="text-3xl font-black mb-8 text-indigo-600 uppercase">CREACARTI</h2>
-        
-        <div v-if="!showReset" class="space-y-4">
-            <input v-model="auth.email" type="email" placeholder="Email" class="w-full p-5 bg-slate-50 rounded-2xl outline-none font-bold">
-            <input v-model="auth.password" type="password" placeholder="Contraseña" class="w-full p-5 bg-slate-50 rounded-2xl outline-none text-center">
-            <button @click="handleLogin" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs">Entrar</button>
-            <button @click="handleRegister" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs">Registrarme</button>
-            
-            <button @click="showReset = true" class="text-xs text-indigo-400 font-bold hover:underline block mx-auto mt-4 uppercase tracking-tighter">Olvide mi contraseña</button>
-        </div>
-
-        <div v-else class="space-y-4">
-            <p class="text-xs font-bold text-slate-400 mb-4">Ingresa tu email para recibir un enlace de recuperación.</p>
-            <input v-model="auth.email" type="email" placeholder="Email de recuperación" class="w-full p-5 bg-slate-50 rounded-2xl outline-none font-bold border-2 border-indigo-100">
-            <button @click="handleResetPassword" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs">Enviar enlace</button>
-            <button @click="showReset = false" class="text-xs text-slate-400 font-black hover:text-slate-600 uppercase">Volver</button>
+    <main v-if="view === 'profile'" class="max-w-2xl mx-auto p-8 py-20 w-full">
+        <div class="vn-card p-16 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 vn-button"></div>
+            <div class="relative w-44 h-44 mx-auto mb-10">
+                <img :src="profile.avatar_url || 'https://via.placeholder.com/150'" class="w-full h-full rounded-2xl object-cover shadow-2xl border-4 border-slate-900">
+                <label class="absolute -bottom-4 -right-4 vn-button text-white w-14 h-14 rounded-xl flex items-center justify-center cursor-pointer shadow-xl"><i class="fas fa-sync"></i><input type="file" class="hidden" @change="e => subirImagenStorage(e, 'avatares')" accept="image/*"></label>
+            </div>
+            <div class="flex justify-center gap-10 mb-12">
+                <div class="stat-bubble px-10"><p class="text-3xl font-black text-white">{{ followerCount }}</p><p class="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Seguidores</p></div>
+                <div class="stat-bubble px-10"><p class="text-3xl font-black text-white">{{ followingCount }}</p><p class="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Siguiendo</p></div>
+            </div>
+            <div class="space-y-8 text-left">
+                <input v-model="profile.nombre_usuario" class="w-full p-6 bg-slate-900 border border-slate-700 rounded-xl outline-none font-bold text-xl text-white">
+                <textarea v-model="profile.biografia" class="w-full p-6 bg-slate-900 border border-slate-700 rounded-xl outline-none min-h-[150px] font-bold text-slate-300"></textarea>
+                <button @click="saveProfile" class="w-full vn-button text-white py-6 rounded-2xl font-black uppercase tracking-widest">Actualizar Nexo</button>
+            </div>
         </div>
     </main>
+
+    <main v-if="view === 'auth'" class="max-w-md mx-auto mt-24 p-12 vn-card text-center">
+        <h2 class="text-3xl font-black mb-10 text-white uppercase italic tracking-tighter">Acceso al <span class="text-cyan-400">Nexo</span></h2>
+        <div class="space-y-6">
+            <input v-model="auth.email" type="email" placeholder="Email" class="w-full p-6 bg-slate-900 border border-slate-700 rounded-xl outline-none font-bold text-white">
+            <input v-model="auth.password" type="password" placeholder="Clave" class="w-full p-6 bg-slate-900 border border-slate-700 rounded-xl outline-none text-center font-bold text-white">
+            <button @click="handleLogin" class="w-full bg-white text-slate-900 py-6 rounded-xl font-black uppercase tracking-widest transition hover:bg-cyan-400">Conectar</button>
+            <button @click="handleRegister" class="w-full vn-button text-white py-6 rounded-xl font-black uppercase tracking-widest">Registrar</button>
+        </div>
+    </main>
+
+    <div v-if="showModalObra" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-8">
+        <div class="vn-card p-12 max-w-2xl w-full relative border-2 border-cyan-500/40">
+            <div class="space-y-8">
+                <div class="flex gap-8 items-center">
+                    <div class="w-32 h-44 bg-slate-900 rounded-xl overflow-hidden shrink-0 relative border-4 border-dashed border-slate-700">
+                        <img v-if="formObra.portada_url" :src="formObra.portada_url" class="w-full h-full object-cover">
+                        <label class="absolute inset-0 cursor-pointer flex items-center justify-center"><i v-if="!formObra.portada_url" class="fas fa-image text-slate-700 text-3xl"></i><input type="file" class="hidden" @change="e => subirImagenStorage(e, 'portadas')"></label>
+                    </div>
+                    <input v-model="formObra.titulo" placeholder="Título" class="flex-grow p-6 bg-slate-900 border border-slate-700 rounded-xl outline-none font-black text-2xl text-white">
+                </div>
+                <div class="flex flex-wrap gap-2"><button v-for="tag in tagsDisponibles" :key="tag" @click="toggleTag(tag)" :class="formObra.tags.includes(tag) ? 'active' : ''" class="tag-pill px-5 py-2 border border-slate-700 rounded-lg bg-slate-900">{{ tag }}</button></div>
+                <div class="flex gap-4"><button v-for="t in ['libro', 'webtoon', 'comic']" @click="formObra.tipo = t" :class="formObra.tipo === t ? 'bg-cyan-400 text-black' : 'bg-slate-900 text-slate-500'" class="flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition">{{ t }}</button></div>
+                <textarea v-model="formObra.descripcion" placeholder="Sinopsis..." class="w-full p-8 bg-slate-900 border border-slate-700 rounded-xl outline-none min-h-[150px] font-bold text-white"></textarea>
+                <div class="flex gap-8"><button @click="cerrarModalObra" class="flex-1 font-bold uppercase text-xs text-slate-500">Cancelar</button><button @click="editMode ? guardarCambiosObra() : crearObra()" class="flex-1 vn-button text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest">Guardar</button></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -230,68 +291,83 @@
     createApp({
         data() {
             return {
-                view: 'explore', isDark: false, user: null, loading: false, obras: [], obrasPropias: [], capitulos: [], comentarios: [],
-                nuevoComentario: '', userLikes: [], profile: { nombre_usuario: 'Usuario', biografia: '', avatar_url: '' },
+                view: 'explore', user: null, loading: false, obras: [], obrasPropias: [], capitulos: [], comentarios: [],
+                nuevoComentario: '', userLikes: [], profile: { nombre_usuario: '', biografia: '', avatar_url: '' },
                 obraActiva: null, capituloActualIndex: 0, showModalObra: false, editMode: false, tagFiltro: null,
-                tagsDisponibles: ['fantasía', 'terror', 'comedia', 'romance', 'acción', '+18', 'ciencia ficción', 'drama', 'misterio'],
+                tagsDisponibles: ['fantasía', 'terror', 'comedia', 'romance', 'acción', '+18', 'ciencia ficción', 'drama', 'misterio', 'ciencia', 'religión'],
                 obraParaCapitulo: null, formObra: { id: null, titulo: '', tipo: 'libro', descripcion: '', tags: [], portada_url: '' },
                 auth: { email: '', password: '' }, nuevoCap: { titulo: '', orden: 1, contenido: '', link_externo: '' },
-                showReset: false // <--- NUEVO
+                showReset: false, userLibrary: [], userFollowing: [], searchQuery: '', perfilesEncontrados: [],
+                followerCount: 0, followingCount: 0, totalIngresos: 0, totalVistas: 0
             }
         },
         computed: {
             filteredObras() {
                 if(!this.tagFiltro) return this.obras;
-                return this.obras.filter(o => o.tags && o.tags.includes(this.tagFiltro));
-            }
+                return this.obras.filter(o => o.tags?.includes(this.tagFiltro));
+            },
+            libraryObras() { return this.obras.filter(o => this.userLibrary.includes(o.id)); }
         },
         async mounted() {
-            this.isDark = localStorage.getItem('theme') === 'dark';
-            const cached = localStorage.getItem('creacarti_cached_profile');
-            if(cached) this.profile = JSON.parse(cached);
             const { data: { user } } = await _supabase.auth.getUser();
             this.user = user;
             await this.fetchObras();
-            if(this.user) { await this.fetchProfile(); this.fetchObrasPropias(); this.fetchUserLikes(); }
-            _supabase.auth.onAuthStateChange(async (event, session) => {
+            if(this.user) { 
+                await this.fetchProfile(); this.fetchObrasPropias(); this.fetchUserLikes();
+                this.fetchLibrary(); this.fetchFollowing(); this.fetchCounts(); 
+            }
+            _supabase.auth.onAuthStateChange(async (e, session) => {
                 this.user = session?.user || null;
-                if(this.user) await this.fetchProfile();
+                if(this.user) { await this.fetchProfile(); this.fetchLibrary(); this.fetchFollowing(); this.fetchCounts(); this.fetchObrasPropias(); this.fetchUserLikes(); }
             });
         },
         methods: {
-            toggleTheme() { this.isDark = !this.isDark; localStorage.setItem('theme', this.isDark ? 'dark' : 'light'); },
-            async handleResetPassword() {
-                if(!this.auth.email) return alert("Ingresa tu correo.");
-                const { error } = await _supabase.auth.resetPasswordForEmail(this.auth.email);
-                if(error) alert(error.message);
-                else {
-                    alert("¡Correo enviado! Revisa tu bandeja de entrada.");
-                    this.showReset = false;
-                }
+            async fetchCounts() {
+                if(!this.user) return;
+                const [f_ers, f_ing, dons] = await Promise.all([
+                    _supabase.from('seguidores').select('id', { count: 'exact' }).eq('seguido_id', this.user.id),
+                    _supabase.from('seguidores').select('id', { count: 'exact' }).eq('seguidor_id', this.user.id),
+                    _supabase.from('donaciones').select('monto').eq('creador_id', this.user.id)
+                ]);
+                this.followerCount = f_ers.count || 0;
+                this.followingCount = f_ing.count || 0;
+                this.totalIngresos = dons.data?.reduce((acc, d) => acc + parseFloat(d.monto), 0) || 0;
+            },
+            async fetchObrasPropias() { 
+                if(!this.user) return;
+                const { data } = await _supabase.from('obras').select('*').eq('autor_id', this.user.id);
+                this.obrasPropias = data || [];
+                this.totalVistas = data?.reduce((acc, o) => acc + (o.vistas || 0), 0) || 0;
+            },
+            async abrirObra(obra) { 
+                this.obraActiva = obra; this.view = 'reader'; this.capituloActualIndex = 0; 
+                await this.fetchCapitulosYComentarios(obra.id);
+                await _supabase.from('obras').update({ vistas: (obra.vistas || 0) + 1 }).eq('id', obra.id);
+                obra.vistas++; 
+            },
+            async registrarDonacion(monto) {
+                if(!this.user) { this.view = 'auth'; return; }
+                await _supabase.from('donaciones').insert({ donante_id: this.user.id, creador_id: this.obraActiva.autor_id, monto: monto, obra_id: this.obraActiva.id });
+                alert("¡Gracias por tu apoyo! Donación enviada."); this.fetchCounts();
+            },
+            async fetchProfile() {
+                const { data } = await _supabase.from('perfiles').select('*').eq('id', this.user.id).maybeSingle();
+                if(data) this.profile = data;
+            },
+            async saveProfile() {
+                await _supabase.from('perfiles').upsert({ id: this.user.id, nombre_usuario: this.profile.nombre_usuario, biografia: this.profile.biografia, avatar_url: this.profile.avatar_url });
+                alert("Nexo sincronizado.");
             },
             async subirImagenStorage(e, bucket) {
                 const file = e.target.files[0];
                 if (!file || !this.user) return;
-                try {
-                    const ext = file.name.split('.').pop();
-                    const path = `${this.user.id}/${Date.now()}.${ext}`;
-                    const { data, error } = await _supabase.storage.from(bucket).upload(path, file);
-                    if (error) throw error;
-                    const { data: { publicUrl } } = _supabase.storage.from(bucket).getPublicUrl(path);
-                    if(bucket === 'avatares') { this.profile.avatar_url = publicUrl; await this.saveProfile(); }
-                    else { this.formObra.portada_url = publicUrl; }
-                } catch (err) { alert(err.message); }
-            },
-            async fetchProfile() {
-                const { data } = await _supabase.from('perfiles').select('*').eq('id', this.user.id).maybeSingle();
-                if(data) { this.profile = data; localStorage.setItem('creacarti_cached_profile', JSON.stringify(data)); }
-            },
-            async saveProfile() {
-                const { error } = await _supabase.from('perfiles').upsert({ id: this.user.id, nombre_usuario: this.profile.nombre_usuario, biografia: this.profile.biografia, avatar_url: this.profile.avatar_url });
-                if(!error) { localStorage.setItem('creacarti_cached_profile', JSON.stringify(this.profile)); alert("¡Perfil guardado!"); }
+                const path = `${this.user.id}/${Date.now()}.${file.name.split('.').pop()}`;
+                await _supabase.storage.from(bucket).upload(path, file);
+                const { data: { publicUrl } } = _supabase.storage.from(bucket).getPublicUrl(path);
+                if(bucket === 'avatares') { this.profile.avatar_url = publicUrl; await this.saveProfile(); }
+                else { this.formObra.portada_url = publicUrl; }
             },
             async fetchObras() { this.loading = true; const { data } = await _supabase.from('obras').select('*').order('fecha_creacion', { ascending: false }); this.obras = data || []; this.loading = false; },
-            async fetchObrasPropias() { const { data } = await _supabase.from('obras').select('*').eq('autor_id', this.user.id); this.obrasPropias = data || []; },
             abrirCrearObra() { this.editMode = false; this.formObra = { titulo: '', tipo: 'libro', descripcion: '', tags: [], portada_url: '' }; this.showModalObra = true; },
             abrirEditarObra(obra) { this.editMode = true; this.formObra = { ...obra, tags: obra.tags || [] }; this.showModalObra = true; },
             cerrarModalObra() { this.showModalObra = false; },
@@ -301,21 +377,23 @@
             },
             prepararCapitulo(obra) { this.obraParaCapitulo = obra; this.nuevoCap = { titulo: '', orden: 1, contenido: '', link_externo: '' }; },
             async crearObra() {
-                const { error } = await _supabase.from('obras').insert({ autor_id: this.user.id, titulo: this.formObra.titulo, tipo: this.formObra.tipo, descripcion: this.formObra.descripcion, tags: this.formObra.tags, portada_url: this.formObra.portada_url });
-                if(!error) { this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias(); }
+                await _supabase.from('obras').insert({ autor_id: this.user.id, titulo: this.formObra.titulo, tipo: this.formObra.tipo, descripcion: this.formObra.descripcion, tags: this.formObra.tags, portada_url: this.formObra.portada_url });
+                this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias();
             },
             async guardarCambiosObra() {
-                const { error } = await _supabase.from('obras').update(this.formObra).eq('id', this.formObra.id);
-                if(!error) { this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias(); }
+                await _supabase.from('obras').update(this.formObra).eq('id', this.formObra.id);
+                this.showModalObra = false; this.fetchObras(); this.fetchObrasPropias();
             },
-            async eliminarObra(id) { if(confirm("¿Borrar obra?")) { await _supabase.from('obras').delete().eq('id', id); this.fetchObras(); this.fetchObrasPropias(); } },
+            async eliminarObra(id) { if(confirm("¿Borrar definitivamente?")) { await _supabase.from('obras').delete().eq('id', id); this.fetchObras(); this.fetchObrasPropias(); } },
             async subirCapitulo() {
-                const { error } = await _supabase.from('capitulos').insert({ obra_id: this.obraParaCapitulo.id, orden: this.nuevoCap.orden, titulo_capitulo: this.nuevoCap.titulo, contenido_texto: this.nuevoCap.contenido, link_externo: this.nuevoCap.link_externo });
-                if(!error) alert("¡Publicado!");
+                await _supabase.from('capitulos').insert({ obra_id: this.obraParaCapitulo.id, orden: this.nuevoCap.orden, titulo_capitulo: this.nuevoCap.titulo, contenido_texto: this.nuevoCap.contenido, link_externo: this.nuevoCap.link_externo });
+                alert("Segmento publicado.");
             },
-            async abrirObra(obra) { this.obraActiva = obra; this.view = 'reader'; this.capituloActualIndex = 0; await this.fetchCapitulosYComentarios(obra.id); },
             async fetchCapitulosYComentarios(obraId) {
-                const [caps, coms] = await Promise.all([ _supabase.from('capitulos').select('*').eq('obra_id', obraId).order('orden', { ascending: true }), _supabase.from('comentarios').select('*').eq('obra_id', obraId).order('fecha_comentario', { ascending: false }) ]);
+                const [caps, coms] = await Promise.all([ 
+                    _supabase.from('capitulos').select('*').eq('obra_id', obraId).order('orden', { ascending: true }), 
+                    _supabase.from('comentarios').select('*').eq('obra_id', obraId).order('fecha_comentario', { ascending: false }) 
+                ]);
                 this.capitulos = caps.data || []; this.comentarios = coms.data || [];
             },
             cambiarCapitulo(delta) {
@@ -323,18 +401,56 @@
                 if(nuevo >= 0 && nuevo < this.capitulos.length) { this.capituloActualIndex = nuevo; window.scrollTo({ top: 0, behavior: 'smooth' }); }
             },
             async subirComentario() {
-                const { error } = await _supabase.from('comentarios').insert({ obra_id: this.obraActiva.id, usuario_id: this.user.id, usuario_nombre: this.profile.nombre_usuario || 'Lector', mensaje: this.nuevoComentario });
-                if(!error) { this.nuevoComentario = ''; this.fetchComentarios(); }
+                await _supabase.from('comentarios').insert({ obra_id: this.obraActiva.id, usuario_id: this.user.id, usuario_nombre: this.profile.nombre_usuario || 'Lector', mensaje: this.nuevoComentario });
+                this.nuevoComentario = ''; this.fetchComentarios();
             },
             async fetchComentarios() { const { data } = await _supabase.from('comentarios').select('*').eq('obra_id', this.obraActiva.id).order('fecha_comentario', { ascending: false }); this.comentarios = data || []; },
-            async registrarDonacion(monto) { if(!this.user) { this.view = 'auth'; return; } await _supabase.from('donaciones').insert({ donante_id: this.user.id, creador_id: this.obraActiva.autor_id, monto: monto, obra_id: this.obraActiva.id }); alert("¡Gracias!"); },
             async fetchUserLikes() { if(!this.user) return; const { data } = await _supabase.from('interacciones').select('obra_id').eq('usuario_id', this.user.id); if(data) this.userLikes = data.map(l => l.obra_id); },
             async toggleLike(obraId) {
                 if(!this.user) { this.view = 'auth'; return; }
-                if(this.userLikes.includes(obraId)) { await _supabase.from('interacciones').delete().eq('usuario_id', this.user.id).eq('obra_id', obraId); this.userLikes = this.userLikes.filter(id => id !== obraId); } 
-                else { await _supabase.from('interacciones').insert({ usuario_id: this.user.id, obra_id: obraId }); this.userLikes.push(obraId); }
+                if(this.userLikes.includes(obraId)) {
+                    await _supabase.from('interacciones').delete().eq('usuario_id', this.user.id).eq('obra_id', obraId);
+                    this.userLikes = this.userLikes.filter(id => id !== obraId);
+                } else {
+                    await _supabase.from('interacciones').insert({ usuario_id: this.user.id, obra_id: obraId });
+                    this.userLikes.push(obraId);
+                }
             },
-            async handleLogin() { const { error } = await _supabase.auth.signInWithPassword(this.auth); if(!error) location.reload(); else alert(error.message); },
+            async fetchLibrary() {
+                const { data } = await _supabase.from('biblioteca').select('obra_id').eq('usuario_id', this.user.id);
+                if(data) this.userLibrary = data.map(b => b.obra_id);
+            },
+            async toggleBiblioteca(obraId) {
+                if(!this.user) { this.view = 'auth'; return; }
+                if(this.userLibrary.includes(obraId)) {
+                    await _supabase.from('biblioteca').delete().eq('usuario_id', this.user.id).eq('obra_id', obraId);
+                    this.userLibrary = this.userLibrary.filter(id => id !== obraId);
+                } else {
+                    await _supabase.from('biblioteca').insert({ usuario_id: this.user.id, obra_id: obraId });
+                    this.userLibrary.push(obraId);
+                }
+            },
+            async fetchFollowing() {
+                const { data } = await _supabase.from('seguidores').select('seguido_id').eq('seguidor_id', this.user.id);
+                if(data) this.userFollowing = data.map(s => s.seguido_id);
+            },
+            async buscarPerfiles() {
+                if(this.searchQuery.length < 2) { this.perfilesEncontrados = []; return; }
+                const { data } = await _supabase.from('perfiles').select('*').ilike('nombre_usuario', `%${this.searchQuery}%`).limit(10);
+                this.perfilesEncontrados = data || [];
+            },
+            async toggleSeguir(perfilId) {
+                if(!this.user) { this.view = 'auth'; return; }
+                if(this.userFollowing.includes(perfilId)) {
+                    await _supabase.from('seguidores').delete().eq('seguidor_id', this.user.id).eq('seguido_id', perfilId);
+                    this.userFollowing = this.userFollowing.filter(id => id !== perfilId);
+                } else {
+                    await _supabase.from('seguidores').insert({ seguidor_id: this.user.id, seguido_id: perfilId });
+                    this.userFollowing.push(perfilId);
+                }
+                this.fetchCounts();
+            },
+            async handleLogin() { await _supabase.auth.signInWithPassword(this.auth); location.reload(); },
             async handleRegister() { await _supabase.auth.signUp(this.auth); alert("Revisa tu email."); },
             async handleLogout() { await _supabase.auth.signOut(); location.reload(); }
         }
