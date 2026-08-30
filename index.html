@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creacarti | Cine Independiente</title>
+    <title>Creacarti Films | Cine Independiente</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,9 +15,10 @@
         .hero-gradient { background: linear-gradient(0deg, var(--bg) 0%, rgba(5,5,5,0.7) 50%, rgba(5,5,5,0) 100%); }
         .btn-cinema { background: var(--accent); transition: all 0.3s; }
         .btn-cinema:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .btn-kofi { background: #29abe0; transition: all 0.3s; }
+        .btn-kofi:hover { transform: scale(1.05); filter: brightness(1.1); }
         .movie-card:hover .overlay { opacity: 1; }
         [v-cloak] { display: none; }
-        .coming-soon { filter: grayscale(1) blur(2px); opacity: 0.6; }
         .star-active { color: #fbbf24; }
         .star-inactive { color: #374151; }
     </style>
@@ -25,229 +26,291 @@
 <body>
 
 <div id="app" v-cloak>
+    <!-- NAV BAR -->
     <nav class="fixed top-0 w-full z-[100] px-8 py-5 flex justify-between items-center transition-all" 
          :class="scrollY > 50 ? 'bg-black/95 backdrop-blur-md border-b border-white/10' : 'bg-transparent'">
-        <div class="flex items-center gap-12">
-            <h1 @click="view = 'home'; generoFiltro = ''" class="text-3xl font-black text-red-600 cursor-pointer italic tracking-tighter">CREACARTI</h1>
-            <div class="hidden lg:flex gap-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                <button @click="view = 'home'" :class="view==='home'?'text-white':''">Inicio</button>
-                <button @click="view = 'library'" :class="view==='library'?'text-white':''">Biblioteca</button>
-                <button v-for="g in ['Drama', 'Terror', 'Acción', 'Experimental']" @click="filtrarPorGenero(g)" :class="generoFiltro === g ? 'text-white' : ''">{{g}}</button>
+        <div class="flex items-center gap-10">
+            <h1 @click="view = 'home'; generoFiltro = ''" class="text-3xl font-black text-red-600 cursor-pointer italic tracking-tighter">
+                CREACARTI <span class="text-xs text-white uppercase font-normal tracking-widest block font-sans">Films</span>
+            </h1>
+            <div class="hidden lg:flex gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                <button @click="view = 'home'; generoFiltro = ''" :class="view==='home' && !generoFiltro ? 'text-white':''">Inicio</button>
+                <button @click="view = 'top'" :class="view==='top'?'text-white':''">🏆 Mejor Valoradas</button>
+                <button @click="view = 'library'" :class="view==='library'?'text-white':''">❤️ Guardados</button>
+                <button v-for="g in generosLista" :key="g" @click="filtrarPorGenero(g)" :class="generoFiltro === g ? 'text-white' : ''">{{g}}</button>
             </div>
         </div>
-        <div class="flex items-center gap-6">
-            <div class="relative"><input v-model="searchQuery" placeholder="Buscar..." class="bg-white/10 border border-white/10 rounded-full py-2 px-6 text-sm outline-none focus:w-64 transition-all"></div>
+        <div class="flex items-center gap-4">
+            <!-- DONATE BUTTON -->
+            <a href="https://ko-fi.com/creacarti" target="_blank" class="btn-kofi px-4 py-2 rounded-full font-black text-xs flex items-center gap-2 shadow-lg">
+                <i class="fas fa-coffee"></i> Donar
+            </a>
+            
+            <div class="relative hidden sm:block">
+                <input v-model="searchQuery" placeholder="Buscar cortometraje..." class="bg-white/10 border border-white/10 rounded-full py-2 px-5 text-sm outline-none focus:w-60 transition-all">
+            </div>
+
             <template v-if="user">
-                <button v-if="profile.es_creador" @click="view = 'dashboard'" class="text-[10px] font-black uppercase border border-white/20 px-4 py-2 rounded">Studio</button>
+                <button v-if="profile.es_creador" @click="view = 'dashboard'" class="text-[10px] font-black uppercase border border-white/20 px-4 py-2 rounded hover:bg-white/10">Studio</button>
                 <img @click="view = 'profile'" :src="profile.avatar_url || 'https://i.pravatar.cc/150'" class="w-10 h-10 rounded-full border border-red-600 cursor-pointer object-cover">
             </template>
             <button v-else @click="view = 'auth'" class="btn-cinema px-6 py-2 rounded font-bold text-sm">ACCEDER</button>
         </div>
     </nav>
 
+    <!-- MAIN HOME -->
     <main v-if="view === 'home'">
-        <header class="relative h-[70vh] flex items-end p-12 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2059" class="absolute inset-0 w-full h-full object-cover brightness-50">
+        <!-- SHORT OF THE WEEK FEATURE -->
+        <header v-if="shortOfTheWeek" class="relative min-h-[75vh] flex items-end p-8 md:p-16 overflow-hidden pt-28">
+            <img :src="shortOfTheWeek.portada_url" class="absolute inset-0 w-full h-full object-cover brightness-40">
             <div class="absolute inset-0 hero-gradient"></div>
-            <h2 class="relative z-10 text-8xl font-black italic">CREA<span class="text-red-600">CARTI</span></h2>
+            <div class="relative z-10 max-w-3xl">
+                <span class="bg-red-600 text-white font-black text-[10px] tracking-widest uppercase px-3 py-1 rounded-full mb-4 inline-block">
+                    🍿 Short of the Week
+                </span>
+                <h2 class="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4">{{ shortOfTheWeek.titulo }}</h2>
+                <div class="flex items-center gap-4 text-sm text-gray-300 font-bold mb-6">
+                    <span>{{ shortOfTheWeek.duracion_minutos }} min</span> • 
+                    <span>{{ shortOfTheWeek.genero }}</span> • 
+                    <span>{{ shortOfTheWeek.pais_origen }}</span> •
+                    <span class="text-yellow-400">★ {{ shortOfTheWeek.calificacion_avg }}</span>
+                </div>
+                <p class="text-gray-300 text-base md:text-lg mb-8 line-clamp-3">{{ shortOfTheWeek.descripcion }}</p>
+                <div class="flex gap-4">
+                    <button @click="verDetalle(shortOfTheWeek)" class="btn-cinema px-8 py-4 rounded-xl font-black uppercase text-xs flex items-center gap-2">
+                        <i class="fas fa-play"></i> Watch Film
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <section class="px-12 py-20 bg-[#050505]">
-            <h3 class="text-3xl font-black italic mb-10 uppercase">{{ generoFiltro || 'Estrenos' }}</h3>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
+        <!-- CATALOG SECTIONS -->
+        <section class="px-8 md:px-16 py-12 bg-[#050505]">
+            <h3 class="text-2xl md:text-3xl font-black italic mb-8 uppercase tracking-tight">
+                {{ generoFiltro ? 'Categoría: ' + generoFiltro : 'Cortometrajes Recientes' }}
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 <div v-for="o in filteredObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 group cursor-pointer shadow-2xl" @click="verDetalle(o)">
-                    <img :src="o.portada_url" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" :class="{'coming-soon': !o.video_url}">
-                    <div v-if="!o.video_url" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        <span class="bg-red-600 text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest">Próximamente</span>
-                    </div>
-                    <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-6 transition-opacity text-center">
-                        <h4 class="font-black text-xl mb-1">{{o.titulo}}</h4>
+                    <img :src="o.portada_url" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
+                        <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
+                        <p class="text-gray-400 text-xs mb-2">{{o.duracion_minutos}} min • {{o.genero}}</p>
                         <p class="text-yellow-500 text-xs font-black mb-4">★ {{o.calificacion_avg}}</p>
-                        <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Ficha</button>
+                        <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Cortometraje</button>
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <main v-if="view === 'library'" class="pt-32 px-12 pb-20 max-w-7xl mx-auto">
-        <h2 class="text-5xl font-black italic mb-12 uppercase">Mi <span class="text-red-600">Lista</span></h2>
-        <div v-if="libraryObras.length === 0" class="text-center py-20 text-gray-600 font-black">VACÍO</div>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
-            <div v-for="o in libraryObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer" @click="verDetalle(o)">
-                <img :src="o.portada_url" class="w-full h-full object-cover">
-                <div class="overlay absolute inset-0 bg-black/60 opacity-0 flex items-center justify-center transition-opacity">
-                    <button @click.stop="toggleBiblioteca(o.id)" class="text-red-600 text-3xl"><i class="fas fa-trash"></i></button>
+    <!-- TOP MEJOR VALORADAS -->
+    <main v-if="view === 'top'" class="pt-32 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-black italic mb-8 uppercase">🏆 Mejor <span class="text-red-600">Valoradas</span></h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div v-for="o in topObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 group cursor-pointer shadow-2xl" @click="verDetalle(o)">
+                <img :src="o.portada_url" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
+                    <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
+                    <p class="text-yellow-500 text-sm font-black mb-4">★ {{o.calificacion_avg}}</p>
+                    <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Cortometraje</button>
                 </div>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'profile'" class="pt-32 px-12 max-w-3xl mx-auto pb-20">
-        <div class="bg-card p-12 rounded-[3rem] border border-white/10">
-            <h2 class="text-4xl font-black italic mb-10 uppercase text-center">Mi <span class="text-red-600">Perfil</span></h2>
-            <div class="flex flex-col items-center mb-10">
+    <!-- BIBLIOTECA (GUARDADOS) -->
+    <main v-if="view === 'library'" class="pt-32 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-black italic mb-8 uppercase">Cortometrajes <span class="text-red-600">Guardados</span></h2>
+        <div v-if="libraryObras.length === 0" class="text-center py-20 text-gray-500 font-bold">No has guardado cortometrajes todavía.</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div v-for="o in libraryObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden group cursor-pointer border border-white/10" @click="verDetalle(o)">
+                <img :src="o.portada_url" class="w-full h-full object-cover">
+                <div class="overlay absolute inset-0 bg-black/70 opacity-0 flex items-center justify-center transition-opacity">
+                    <button @click.stop="toggleBiblioteca(o.id)" class="bg-red-600 text-white p-4 rounded-full"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PERFIL USUARIO -->
+    <main v-if="view === 'profile'" class="pt-32 px-8 max-w-2xl mx-auto pb-20">
+        <div class="bg-card p-8 rounded-3xl border border-white/10">
+            <h2 class="text-3xl font-black italic mb-8 uppercase text-center">Mi <span class="text-red-600">Perfil</span></h2>
+            <div class="flex flex-col items-center mb-8">
                 <div class="relative group">
-                    <img :src="profile.avatar_url || 'https://i.pravatar.cc/150'" class="w-40 h-40 rounded-full border-4 border-red-600 object-cover shadow-2xl">
-                    <label class="absolute bottom-0 right-0 bg-red-600 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition">
+                    <img :src="profile.avatar_url || 'https://i.pravatar.cc/150'" class="w-32 h-32 rounded-full border-4 border-red-600 object-cover shadow-2xl">
+                    <label class="absolute bottom-0 right-0 bg-red-600 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition">
                         <i class="fas fa-camera"></i>
                         <input type="file" @change="e => subirArchivo(e, 'avatares', 'profile')" class="hidden">
                     </label>
                 </div>
             </div>
-            <div class="space-y-6">
-                <input v-model="profile.nombre_usuario" placeholder="Nombre" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
-                <textarea v-model="profile.biografia" placeholder="Bio..." class="w-full bg-black border border-white/10 p-4 rounded-xl h-32 outline-none"></textarea>
-                <div class="grid grid-cols-2 gap-4">
-                    <input v-model="profile.kofi_url" placeholder="Ko-fi URL" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
-                    <select v-model="profile.es_creador" class="w-full bg-black border border-white/10 p-4 rounded-xl">
-                        <option :value="false">Espectador</option>
-                        <option :value="true">Cineasta</option>
-                    </select>
-                </div>
-                <button @click="guardarPerfil" class="w-full btn-cinema py-5 rounded-xl font-black uppercase text-xs">Sincronizar</button>
+            <div class="space-y-4">
+                <input v-model="profile.nombre_usuario" placeholder="Nombre de usuario" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                <textarea v-model="profile.biografia" placeholder="Biografía..." class="w-full bg-black border border-white/10 p-4 rounded-xl h-24 outline-none"></textarea>
+                <input v-model="profile.kofi_url" placeholder="Link de Ko-fi para recibir apoyo" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                <select v-model="profile.es_creador" class="w-full bg-black border border-white/10 p-4 rounded-xl">
+                    <option :value="false">Espectador</option>
+                    <option :value="true">Cineasta / Creador</option>
+                </select>
+                <button @click="guardarPerfil" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Guardar Cambios</button>
+                <button @click="handleLogout" class="w-full border border-white/10 py-3 rounded-xl font-bold uppercase text-xs text-gray-400 hover:text-white">Cerrar Sesión</button>
             </div>
         </div>
     </main>
 
-    <main v-if="view === 'author_profile'" class="pt-32 px-12 max-w-6xl mx-auto pb-20">
-        <button @click="view = 'home'" class="mb-10 text-gray-500 font-black uppercase text-[10px]"><i class="fas fa-arrow-left"></i> Volver</button>
-        <div class="flex flex-col items-center text-center">
-            <img :src="selectedAuthor.avatar_url || 'https://i.pravatar.cc/150'" class="w-44 h-44 rounded-full border-4 border-red-600 object-cover mb-6">
-            <h2 class="text-5xl font-black italic uppercase tracking-tighter">{{selectedAuthor.nombre_usuario}}</h2>
-            <p class="text-gray-400 max-w-2xl text-lg mt-4">{{selectedAuthor.biografia || 'Cineasta en Creacarti.'}}</p>
-            <a v-if="selectedAuthor.kofi_url" :href="selectedAuthor.kofi_url" target="_blank" class="mt-8 bg-white text-black px-10 py-4 rounded-full font-black uppercase text-xs">Apoyar Artista</a>
-        </div>
-    </main>
+    <!-- FICHA Y REPRODUCTOR DE CORTOMETRAJE -->
+    <main v-if="view === 'detalle'" class="pt-28 px-8 md:px-16 max-w-6xl mx-auto pb-20">
+        <button @click="view = 'home'" class="mb-6 text-gray-400 font-bold uppercase text-xs flex items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Volver al catálogo
+        </button>
 
-    <main v-if="view === 'detalle'" class="pt-32 px-12 max-w-6xl mx-auto pb-20">
-        <div v-if="currentVideoUrl" class="mb-12 bg-black rounded-3xl overflow-hidden aspect-video border border-white/10 shadow-2xl">
+        <!-- REPRODUCTOR -->
+        <div v-if="currentVideoUrl" class="mb-8 bg-black rounded-3xl overflow-hidden aspect-video border border-white/10 shadow-2xl">
             <video :key="currentVideoUrl" controls class="w-full h-full" :poster="obraActiva.portada_url">
                 <source :src="currentVideoUrl" type="video/mp4">
             </video>
         </div>
-        <div v-else class="mb-12 aspect-video bg-white/5 rounded-3xl flex flex-col items-center justify-center border border-dashed border-white/20">
-            <i class="fas fa-clock text-6xl text-red-600 mb-6"></i>
-            <h3 class="text-3xl font-black uppercase italic tracking-tighter">Próximamente</h3>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
             <div>
-                <img :src="obraActiva.portada_url" class="w-full rounded-2xl shadow-xl mb-6">
-                <div class="bg-white/5 p-6 rounded-2xl border border-white/10 text-center">
-                    <p class="text-[10px] font-black uppercase text-gray-500 mb-4">Calificar Obra</p>
-                    <div class="flex justify-center gap-2 mb-2">
+                <img :src="obraActiva.portada_url" class="w-full rounded-2xl shadow-xl mb-6 border border-white/10">
+                <div class="bg-white/5 p-6 rounded-2xl border border-white/10 text-center space-y-4">
+                    <p class="text-[10px] font-black uppercase text-gray-400">Calificar Cortometraje</p>
+                    <div class="flex justify-center gap-2">
                         <i v-for="n in 5" :key="n" @click="calificarObra(n)" class="fas fa-star cursor-pointer text-2xl transition" :class="n <= userRating ? 'star-active' : 'star-inactive'"></i>
                     </div>
-                    <p class="text-2xl font-black">{{obraActiva.calificacion_avg}}</p>
+                    <p class="text-3xl font-black">★ {{obraActiva.calificacion_avg}}</p>
+                    <button @click="toggleBiblioteca(obraActiva.id)" class="w-full py-3 bg-white text-black font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2">
+                        <i class="fas" :class="userLibrary.includes(obraActiva.id) ? 'fa-heart text-red-600' : 'fa-heart-broken'"></i>
+                        {{ userLibrary.includes(obraActiva.id) ? 'En tus guardados' : 'Guardar Cortometraje' }}
+                    </button>
                 </div>
             </div>
-            <div class="md:col-span-2">
-                <h2 class="text-6xl font-black italic mb-6 uppercase tracking-tighter">{{obraActiva.titulo}}</h2>
-                <div @click="verPerfilAjeno(obraActiva.perfiles)" class="bg-white/5 p-6 rounded-2xl flex items-center justify-between cursor-pointer border border-white/10 mb-8 hover:bg-white/10 transition">
+
+            <div class="md:col-span-2 space-y-6">
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-black italic uppercase tracking-tight mb-2">{{obraActiva.titulo}}</h2>
+                    <p class="text-gray-400 text-sm font-bold">{{obraActiva.duracion_minutos}} min • {{obraActiva.genero}} • {{obraActiva.pais_origen}}</p>
+                </div>
+
+                <!-- AUTOR Y APOYO -->
+                <div class="bg-white/5 p-5 rounded-2xl flex items-center justify-between border border-white/10">
                     <div class="flex items-center gap-4">
-                        <img :src="obraActiva.perfiles.avatar_url" class="w-12 h-12 rounded-full border border-red-600 object-cover">
-                        <h4 class="font-black italic">{{obraActiva.perfiles.nombre_usuario}}</h4>
+                        <img :src="obraActiva.perfiles?.avatar_url || 'https://i.pravatar.cc/150'" class="w-12 h-12 rounded-full border border-red-600 object-cover">
+                        <div>
+                            <h4 class="font-bold text-sm">{{obraActiva.perfiles?.nombre_usuario || 'Cineasta Independiente'}}</h4>
+                            <span class="text-[10px] text-gray-400 uppercase font-bold">Director / Creador</span>
+                        </div>
                     </div>
-                    <span class="text-[10px] font-black uppercase opacity-50">Ver Autor</span>
+                    <a v-if="obraActiva.perfiles?.kofi_url" :href="obraActiva.perfiles.kofi_url" target="_blank" class="btn-kofi px-4 py-2 rounded-xl text-xs font-black">
+                        Apoyar Creador
+                    </a>
+                </div>
+
+                <div>
+                    <h3 class="font-black uppercase text-xs text-gray-400 mb-2">Sinopsis</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">{{obraActiva.descripcion}}</p>
+                </div>
+
+                <!-- SECCIÓN COMENTARIOS -->
+                <div class="pt-8 border-t border-white/10 space-y-6">
+                    <h3 class="text-xl font-black uppercase italic">Comentarios</h3>
+                    
+                    <div v-if="user" class="flex gap-4">
+                        <input v-model="nuevoComentario" placeholder="Escribe tu opinión sobre el cortometraje..." class="flex-1 bg-white/5 border border-white/10 p-4 rounded-xl outline-none text-sm">
+                        <button @click="enviarComentario" class="btn-cinema px-6 py-4 rounded-xl font-black text-xs uppercase">Comentar</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div v-for="c in comentariosActivos" :key="c.id" class="bg-white/5 p-4 rounded-xl border border-white/5 space-y-1">
+                            <span class="font-bold text-xs text-red-500">{{ c.perfiles?.nombre_usuario || 'Usuario' }}</span>
+                            <p class="text-sm text-gray-300">{{ c.contenido }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- STUDIO DE CINEASTA (PANEL METRICAS) -->
+    <main v-if="view === 'dashboard'" class="pt-32 px-8 md:px-16 max-w-6xl mx-auto pb-20">
+        <div class="flex justify-between items-center mb-12">
+            <div>
+                <h2 class="text-4xl font-black italic uppercase">Cineasta <span class="text-red-600">Studio</span></h2>
+                <p class="text-gray-400 text-sm font-bold">Gestiona y analiza el impacto de tus producciones</p>
+            </div>
+            <button @click="showModal = true" class="btn-cinema px-8 py-4 rounded-2xl font-black uppercase text-xs">+ Subir Película</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div v-for="m in misObras" :key="m.id" class="bg-card p-6 rounded-3xl border border-white/10 flex flex-col justify-between">
+                <div>
+                    <img :src="m.portada_url" class="w-full h-44 object-cover rounded-xl mb-4 shadow-lg border border-white/5">
+                    <h4 class="font-bold text-lg truncate mb-2">{{m.titulo}}</h4>
+                    <div class="flex justify-between text-xs text-gray-400 font-bold mb-4">
+                        <span>👁️ {{ m.vistas || 0 }} Vistas</span>
+                        <span>★ {{ m.calificacion_avg || 0 }} Rating</span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="borrarObra(m.id)" class="w-full bg-red-600/20 text-red-500 py-3 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE PUBLICACIÓN -->
+    <div v-if="showModal" class="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-8">
+        <div class="bg-card border border-white/10 p-8 max-w-2xl w-full rounded-3xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-3xl font-black mb-6 italic uppercase">Subir <span class="text-red-600">Cortometraje</span></h3>
+            <div class="space-y-4">
+                <input v-model="formObra.titulo" placeholder="Título de la obra" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                <div class="grid grid-cols-2 gap-4">
+                    <select v-model="formObra.genero" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                        <option v-for="g in generosLista" :key="g" :value="g">{{g}}</option>
+                    </select>
+                    <input v-model.number="formObra.duracion_minutos" type="number" placeholder="Duración (minutos)" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
                 </div>
                 
-                <div v-if="capitulosActivos.length > 0" class="mb-10 space-y-2">
-                    <h4 class="text-red-600 font-black uppercase text-[10px] italic">Episodios</h4>
-                    <div v-for="c in capitulosActivos" :key="c.id" @click="currentVideoUrl = c.video_url" 
-                         class="bg-white/5 p-4 rounded-xl border border-white/10 flex justify-between items-center cursor-pointer"
-                         :class="currentVideoUrl === c.video_url ? 'border-red-600 bg-red-600/10' : ''">
-                        <span class="font-bold text-sm">{{c.orden}}. {{c.titulo_capitulo}}</span>
-                        <i class="fas fa-play-circle text-red-600"></i>
-                    </div>
-                </div>
-                <p class="text-gray-400 text-xl leading-relaxed">{{obraActiva.descripcion}}</p>
-                <button @click="toggleBiblioteca(obraActiva.id)" class="mt-8 px-10 py-4 bg-white text-black font-black uppercase text-[10px] rounded-xl">
-                    {{ userLibrary.includes(obraActiva.id) ? 'En mi lista' : 'Agregar a mi lista' }}
-                </button>
-            </div>
-        </div>
-    </main>
+                <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.video_url ? '✓ Video subido' : 'Seleccionar Video MP4' }}</span>
+                    <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'obra_direct')" class="hidden">
+                </label>
 
-    <main v-if="view === 'dashboard'" class="pt-32 px-12 max-w-6xl mx-auto pb-20">
-        <div class="flex justify-between items-center mb-16">
-            <h2 class="text-5xl font-black italic uppercase">Studio</h2>
-            <button @click="showModal = true" class="btn-cinema px-10 py-4 rounded-2xl font-black uppercase text-xs">Publicar</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div v-for="m in misObras" :key="m.id" class="bg-card p-6 rounded-3xl border border-white/5">
-                <img :src="m.portada_url" class="w-full h-40 object-cover rounded-xl mb-4 shadow-lg">
-                <h4 class="font-bold truncate">{{m.titulo}}</h4>
-                <div class="flex gap-2">
-                    <button @click="abrirGestorCap(m)" class="flex-1 bg-white/10 py-2 rounded text-[8px] font-black uppercase">Caps</button>
-                    <button @click="borrarObra(m.id)" class="px-4 text-red-600"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        </div>
-    </main>
+                <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.portada_url ? '✓ Póster cargado' : 'Seleccionar Póster (Imagen)' }}</span>
+                    <input type="file" accept="image/*" @change="e => subirArchivo(e, 'portadas', 'obra')" class="hidden">
+                </label>
 
-    <div v-if="showCapModal" class="fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-8 backdrop-blur-md">
-        <div class="bg-card border border-white/10 p-10 max-w-xl w-full rounded-3xl overflow-y-auto max-h-[90vh]">
-            <h3 class="text-2xl font-black mb-8 italic uppercase text-red-600">Gestionar Episodios</h3>
-            <div class="space-y-4 mb-10 border-b border-white/10 pb-10">
-                <input v-model="formCap.titulo_capitulo" placeholder="Nombre" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
-                <div class="flex gap-4">
-                    <input v-model.number="formCap.orden" type="number" placeholder="Orden" class="w-16 bg-black border border-white/10 p-4 rounded-xl outline-none">
-                    <label class="flex-1 p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
-                        <span class="text-[10px] font-black uppercase">{{ formCap.video_url ? 'Listo' : 'Subir MP4' }}</span>
-                        <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'cap')" class="hidden">
-                    </label>
-                </div>
-                <button @click="guardarCapitulo" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Añadir</button>
+                <textarea v-model="formObra.descripcion" placeholder="Sinopsis y créditos..." class="w-full bg-black border border-white/10 p-4 rounded-xl h-28 outline-none"></textarea>
+
+                <button @click="publicarObra" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Publicar Cortometraje</button>
+                <button @click="showModal = false" class="w-full border border-white/10 py-3 rounded-xl font-bold uppercase text-xs text-gray-500">Cancelar</button>
             </div>
-            <div class="space-y-2">
-                <div v-for="c in capitulosActivos" :key="c.id" class="bg-white/5 p-4 rounded-xl flex justify-between items-center">
-                    <span class="text-sm">{{c.orden}}. {{c.titulo_capitulo}}</span>
-                    <button @click="eliminarCapitulo(c.id)" class="text-red-600"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-            <button @click="showCapModal = false" class="w-full mt-8 border border-white/20 py-4 rounded-xl font-black text-[10px] uppercase">Cerrar</button>
         </div>
     </div>
 
-    <div v-if="showModal" class="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-8">
-        <div class="bg-card border border-white/10 p-12 max-w-4xl w-full rounded-[3rem] overflow-y-auto max-h-[90vh]">
-            <h3 class="text-4xl font-black mb-10 italic uppercase">Lanzar Obra</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <input v-model="formObra.titulo" placeholder="Título" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none">
-                    <select v-model="formObra.genero" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none">
-                        <option v-for="g in ['Drama', 'Terror', 'Acción', 'Experimental']">{{g}}</option>
-                    </select>
-                    <label class="block p-4 border-2 border-dashed border-white/10 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition">
-                        <i class="fas fa-video mb-2" :class="formObra.video_url ? 'text-green-500' : 'text-gray-500'"></i>
-                        <p class="text-[10px] font-black uppercase">{{ formObra.video_url ? 'Video Cargado' : 'Subir Película (MP4)' }}</p>
-                        <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'obra_direct')" class="hidden">
-                    </label>
-                </div>
-                <div class="relative h-80 bg-black/40 rounded-3xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
-                    <img v-if="formObra.portada_url" :src="formObra.portada_url" class="w-full h-full object-cover">
-                    <div v-else class="text-center"><i class="fas fa-image text-3xl mb-2"></i><p class="text-[10px] font-black uppercase">Póster</p></div>
-                    <input type="file" @change="e => subirArchivo(e, 'portadas', 'obra')" class="absolute inset-0 opacity-0 cursor-pointer">
-                </div>
+    <!-- AUTH MODAL -->
+    <main v-if="view === 'auth'" class="h-screen flex items-center justify-center bg-black px-4">
+        <div class="bg-card p-8 rounded-3xl border border-white/10 max-w-sm w-full text-center">
+            <h2 class="text-3xl font-black mb-6 uppercase tracking-tight">Acceso <span class="text-red-600">Films</span></h2>
+            <div class="space-y-4 mb-6">
+                <input v-model="creds.email" placeholder="Correo electrónico" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none text-sm">
+                <input v-model="creds.password" type="password" placeholder="Contraseña" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none text-sm">
             </div>
-            <textarea v-model="formObra.descripcion" placeholder="Sinopsis..." class="w-full bg-black border border-white/10 p-6 rounded-3xl mt-8 h-32 outline-none"></textarea>
-            <button @click="publicarObra" class="w-full btn-cinema mt-10 py-6 rounded-3xl font-black uppercase shadow-2xl">Publicar</button>
-            <button @click="showModal = false" class="w-full mt-4 text-gray-500 font-black uppercase text-[10px]">Cerrar</button>
-        </div>
-    </div>
-
-    <main v-if="view === 'auth'" class="h-screen flex items-center justify-center bg-black">
-        <div class="bg-card p-12 rounded-[3rem] border border-white/10 max-w-md w-full text-center">
-            <h2 class="text-4xl font-black mb-10 uppercase tracking-tighter">EL <span class="text-red-600">NEXO</span></h2>
-            <div class="space-y-4 mb-10 text-left">
-                <input v-model="creds.email" placeholder="Email" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
-                <input v-model="creds.password" type="password" placeholder="Clave" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
-            </div>
-            <button @click="handleAuth" class="w-full btn-cinema py-5 rounded-xl font-black uppercase text-xs">Conectar</button>
-            <button @click="esRegistro = !esRegistro" class="text-[10px] font-black text-gray-600 uppercase mt-6 block">{{ esRegistro ? 'Ya tengo cuenta' : 'Unirme' }}</button>
+            <button @click="handleAuth" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Ingresar</button>
+            <button @click="esRegistro = !esRegistro" class="text-xs text-gray-400 uppercase font-bold mt-4 block w-full">{{ esRegistro ? 'Ya tengo una cuenta' : 'Crear cuenta de cineasta/espectador' }}</button>
         </div>
     </main>
+
+    <!-- FOOTER GLOBAL DE APOYO -->
+    <footer class="border-t border-white/10 py-10 text-center text-xs text-gray-500 space-y-4">
+        <p>Creacarti Films — La plataforma de cine independiente</p>
+        <a href="https://ko-fi.com/creacarti" target="_blank" class="inline-flex items-center gap-2 text-white bg-white/5 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition">
+            <i class="fas fa-coffee text-yellow-500"></i> Mantén vivo el proyecto en Ko-fi
+        </a>
+    </footer>
 </div>
 
 <script>
@@ -260,21 +323,27 @@ createApp({
     data() {
         return {
             view: 'home', user: null, scrollY: 0, obras: [], misObras: [],
-            profile: {}, userLibrary: [], obraActiva: null, capitulosActivos: [],
+            profile: {}, userLibrary: [], obraActiva: null,
             currentVideoUrl: '', userRating: 0, searchQuery: '', generoFiltro: '',
-            selectedAuthor: null,
+            comentariosActivos: [], nuevoComentario: '',
+            generosLista: ['Drama', 'Terror', 'Acción', 'Documental', 'Experimental', 'Comedia', 'Ciencia Ficción'],
             creds: { email: '', password: '' }, esRegistro: false,
-            showModal: false, showCapModal: false,
-            formObra: { titulo: '', genero: 'Drama', tipo: 'pelicula', portada_url: '', video_url: '', descripcion: '' },
-            formCap: { titulo_capitulo: '', orden: 1, video_url: '', obra_id: null }
+            showModal: false,
+            formObra: { titulo: '', genero: 'Drama', tipo: 'corto', portada_url: '', video_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' }
         }
     },
     computed: {
+        shortOfTheWeek() {
+            return this.obras.find(o => o.es_short_of_the_week) || this.obras[0] || null;
+        },
         filteredObras() {
             let res = this.obras;
             if(this.generoFiltro) res = res.filter(o => o.genero === this.generoFiltro);
             if(this.searchQuery) res = res.filter(o => o.titulo.toLowerCase().includes(this.searchQuery.toLowerCase()));
             return res;
+        },
+        topObras() {
+            return [...this.obras].sort((a,b) => (b.calificacion_avg || 0) - (a.calificacion_avg || 0));
         },
         libraryObras() { return this.obras.filter(o => this.userLibrary.includes(o.id)); }
     },
@@ -291,7 +360,7 @@ createApp({
             this.obras = data || [];
         },
         async fetchProfile() {
-            const { data } = await _client.from('perfiles').select('*').eq('id', this.user.id).single();
+            const { data } = await _client.from('perfiles').select('*').eq('id', this.user.id).maybeSingle();
             if(data) { this.profile = data; if(data.es_creador) this.fetchMisObras(); }
         },
         async fetchMisObras() {
@@ -300,11 +369,11 @@ createApp({
         },
         async fetchLibrary() {
             const { data } = await _client.from('biblioteca').select('obra_id').eq('usuario_id', this.user.id);
-            this.userLibrary = data.map(b => b.obra_id);
+            this.userLibrary = (data || []).map(b => b.obra_id);
         },
         async guardarPerfil() {
             await _client.from('perfiles').upsert({ ...this.profile, id: this.user.id });
-            alert("Perfil guardado.");
+            alert("Perfil actualizado correctamente.");
         },
         async toggleBiblioteca(id) {
             if(!this.user) { this.view = 'auth'; return; }
@@ -317,7 +386,7 @@ createApp({
             }
         },
         async calificarObra(puntos) {
-            if(!this.user) return;
+            if(!this.user) { this.view = 'auth'; return; }
             await _client.from('valoraciones').upsert({ usuario_id: this.user.id, obra_id: this.obraActiva.id, puntuacion: puntos });
             this.userRating = puntos;
             const { data } = await _client.from('obras').select('*').eq('id', this.obraActiva.id).single();
@@ -326,16 +395,15 @@ createApp({
         },
         async subirArchivo(e, bucket, context) {
             const file = e.target.files[0];
+            if(!file) return;
             const name = `${this.user.id}/${Date.now()}-${file.name}`;
-            const { data, error } = await _client.storage.from(bucket).upload(name, file);
+            const { error } = await _client.storage.from(bucket).upload(name, file);
             if(error) return alert("Error al subir archivo");
             const { data: { publicUrl } } = _client.storage.from(bucket).getPublicUrl(name);
             if(context === 'obra') this.formObra.portada_url = publicUrl;
             if(context === 'obra_direct') this.formObra.video_url = publicUrl;
-            if(context === 'cap') this.formCap.video_url = publicUrl;
             if(context === 'profile') this.profile.avatar_url = publicUrl;
         },
-        // FIX FINAL: Captura la sesión en tiempo real para evitar el error de 'autor_id' nulo
         async publicarObra() {
             const { data: { session } } = await _client.auth.getSession();
             if(!session) return alert("Sesión expirada.");
@@ -345,52 +413,54 @@ createApp({
                 this.showModal = false;
                 await this.fetchObras();
                 await this.fetchMisObras();
-                this.formObra = { titulo: '', genero: 'Drama', tipo: 'pelicula', portada_url: '', video_url: '', descripcion: '' };
-            } else { alert("Error Supabase: " + error.message); }
-        },
-        async abrirGestorCap(obra) { 
-            this.formCap.obra_id = obra.id; 
-            const { data } = await _client.from('capitulos').select('*').eq('obra_id', obra.id).order('orden', {ascending: true});
-            this.capitulosActivos = data || [];
-            this.showCapModal = true; 
-        },
-        async guardarCapitulo() {
-            if(!this.formCap.video_url) return alert("Sube un video primero");
-            await _client.from('capitulos').insert(this.formCap);
-            this.abrirGestorCap({id: this.formCap.obra_id});
-            this.formCap = { titulo_capitulo: '', orden: this.formCap.orden + 1, video_url: '', obra_id: this.formCap.obra_id };
-        },
-        async eliminarCapitulo(id) {
-            if(confirm("¿Eliminar episodio?")) {
-                await _client.from('capitulos').delete().eq('id', id);
-                this.abrirGestorCap({id: this.formCap.obra_id});
-            }
+                this.formObra = { titulo: '', genero: 'Drama', tipo: 'corto', portada_url: '', video_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' };
+            } else { alert("Error al publicar: " + error.message); }
         },
         async verDetalle(o) {
             this.obraActiva = o;
-            const { data } = await _client.from('capitulos').select('*').eq('obra_id', o.id).order('orden', {ascending: true});
-            this.capitulosActivos = data || [];
-            this.currentVideoUrl = o.video_url || (data.length > 0 ? data[0].video_url : '');
+            this.currentVideoUrl = o.video_url || '';
             if(this.user) {
                 const { data: r } = await _client.from('valoraciones').select('puntuacion').eq('usuario_id', this.user.id).eq('obra_id', o.id).maybeSingle();
                 this.userRating = r ? r.puntuacion : 0;
             }
-            this.view = 'detalle'; window.scrollTo(0,0);
+            await _client.rpc('incrementar_vistas', { obra_uuid: o.id });
+            await this.cargarComentarios(o.id);
+            this.view = 'detalle'; 
+            window.scrollTo(0,0);
         },
-        verPerfilAjeno(author) { this.selectedAuthor = author; this.view = 'author_profile'; },
+        async cargarComentarios(obraId) {
+            const { data } = await _client.from('comentarios').select('*, perfiles(*)').eq('obra_id', obraId).order('fecha_creacion', {ascending: false});
+            this.comentariosActivos = data || [];
+        },
+        async enviarComentario() {
+            if(!this.nuevoComentario.trim()) return;
+            await _client.from('comentarios').insert({
+                obra_id: this.obraActiva.id,
+                usuario_id: this.user.id,
+                contenido: this.nuevoComentario
+            });
+            this.nuevoComentario = '';
+            this.cargarComentarios(this.obraActiva.id);
+        },
         filtrarPorGenero(g) { this.generoFiltro = g; this.view = 'home'; },
         async handleAuth() {
             try {
                 if(this.esRegistro) {
-                    const { data } = await _client.auth.signUp({ email: this.creds.email, password: this.creds.password });
-                    await _client.from('perfiles').insert({ id: data.user.id, es_creador: true, nombre_usuario: this.creds.email.split('@')[0] });
+                    const { data, error } = await _client.auth.signUp({ email: this.creds.email, password: this.creds.password });
+                    if(error) throw error;
+                    await _client.from('perfiles').insert({ id: data.user.id, es_creador: true, nombre_usuario: this.creds.email.split('@')[0], kofi_url: 'https://ko-fi.com/creacarti' });
                 } else {
-                    await _client.auth.signInWithPassword({ email: this.creds.email, password: this.creds.password });
-                    location.reload();
+                    const { error } = await _client.auth.signInWithPassword({ email: this.creds.email, password: this.creds.password });
+                    if(error) throw error;
                 }
-            } catch(e) { alert("Error"); }
+                location.reload();
+            } catch(e) { alert("Error de autenticación: " + e.message); }
         },
-        borrarObra(id) { if(confirm("¿Borrar?")) { _client.from('obras').delete().eq('id', id).then(() => { this.fetchObras(); this.fetchMisObras(); }); } },
+        borrarObra(id) { 
+            if(confirm("¿Estás seguro de eliminar este cortometraje?")) { 
+                _client.from('obras').delete().eq('id', id).then(() => { this.fetchObras(); this.fetchMisObras(); }); 
+            } 
+        },
         handleLogout() { _client.auth.signOut().then(() => location.reload()); }
     }
 }).mount('#app')
