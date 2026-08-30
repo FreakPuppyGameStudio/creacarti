@@ -36,18 +36,17 @@
             <div class="hidden lg:flex gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
                 <button @click="view = 'home'; generoFiltro = ''" :class="view==='home' && !generoFiltro ? 'text-white':''">Inicio</button>
                 <button @click="view = 'top'" :class="view==='top'?'text-white':''">🏆 Mejor Valoradas</button>
+                <button @click="view = 'worst'" :class="view==='worst'?'text-white':''">💀 Peor Valoradas</button>
                 <button @click="view = 'library'" :class="view==='library'?'text-white':''">❤️ Guardados</button>
-                <button v-for="g in generosLista" :key="g" @click="filtrarPorGenero(g)" :class="generoFiltro === g ? 'text-white' : ''">{{g}}</button>
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <!-- DONATE BUTTON -->
             <a href="https://ko-fi.com/creacarti" target="_blank" class="btn-kofi px-4 py-2 rounded-full font-black text-xs flex items-center gap-2 shadow-lg">
                 <i class="fas fa-coffee"></i> Donar
             </a>
             
             <div class="relative hidden sm:block">
-                <input v-model="searchQuery" placeholder="Buscar cortometraje..." class="bg-white/10 border border-white/10 rounded-full py-2 px-5 text-sm outline-none focus:w-60 transition-all">
+                <input v-model="searchQuery" placeholder="Buscar título..." class="bg-white/10 border border-white/10 rounded-full py-2 px-5 text-sm outline-none focus:w-60 transition-all">
             </div>
 
             <template v-if="user">
@@ -58,10 +57,18 @@
         </div>
     </nav>
 
+    <!-- BARRA DE GÉNEROS SECUNDARIA -->
+    <div class="pt-28 px-8 md:px-16 flex gap-3 overflow-x-auto pb-2 scrollbar-none text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <button @click="generoFiltro = ''; if(view !== 'home') view = 'home'" class="px-4 py-2 rounded-full border border-white/10 whitespace-nowrap" :class="!generoFiltro && view==='home' ? 'bg-red-600 text-white border-red-600' : 'bg-white/5'">Todos</button>
+        <button v-for="g in generosLista" :key="g" @click="filtrarPorGenero(g)" class="px-4 py-2 rounded-full border border-white/10 whitespace-nowrap hover:text-white" :class="generoFiltro === g ? 'bg-red-600 text-white border-red-600' : 'bg-white/5'">
+            {{ g }}
+        </button>
+    </div>
+
     <!-- MAIN HOME -->
     <main v-if="view === 'home'">
         <!-- SHORT OF THE WEEK FEATURE -->
-        <header v-if="shortOfTheWeek" class="relative min-h-[75vh] flex items-end p-8 md:p-16 overflow-hidden pt-28">
+        <header v-if="shortOfTheWeek && !generoFiltro" class="relative min-h-[70vh] flex items-end p-8 md:p-16 overflow-hidden pt-10">
             <img :src="shortOfTheWeek.portada_url" class="absolute inset-0 w-full h-full object-cover brightness-40">
             <div class="absolute inset-0 hero-gradient"></div>
             <div class="relative z-10 max-w-3xl">
@@ -70,6 +77,7 @@
                 </span>
                 <h2 class="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4">{{ shortOfTheWeek.titulo }}</h2>
                 <div class="flex items-center gap-4 text-sm text-gray-300 font-bold mb-6">
+                    <span class="bg-white/20 px-2 py-0.5 rounded text-xs uppercase">{{ shortOfTheWeek.es_serie ? 'Serie (' + (shortOfTheWeek.num_episodios || 1) + ' Eps)' : 'Película' }}</span>
                     <span>{{ shortOfTheWeek.duracion_minutos }} min</span> • 
                     <span>{{ shortOfTheWeek.genero }}</span> • 
                     <span>{{ shortOfTheWeek.pais_origen }}</span> •
@@ -85,18 +93,19 @@
         </header>
 
         <!-- CATALOG SECTIONS -->
-        <section class="px-8 md:px-16 py-12 bg-[#050505]">
+        <section class="px-8 md:px-16 py-10 bg-[#050505]">
             <h3 class="text-2xl md:text-3xl font-black italic mb-8 uppercase tracking-tight">
-                {{ generoFiltro ? 'Categoría: ' + generoFiltro : 'Cortometrajes Recientes' }}
+                {{ generoFiltro ? 'Categoría: ' + generoFiltro : 'Catálogo Reciente' }}
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 <div v-for="o in filteredObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 group cursor-pointer shadow-2xl" @click="verDetalle(o)">
                     <img :src="o.portada_url" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <span v-if="o.es_serie" class="absolute top-3 left-3 bg-red-600 text-white font-black text-[9px] uppercase px-2 py-1 rounded">Serie</span>
                     <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
                         <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
-                        <p class="text-gray-400 text-xs mb-2">{{o.duracion_minutos}} min • {{o.genero}}</p>
+                        <p class="text-gray-400 text-xs mb-2">{{o.es_serie ? o.num_episodios + ' Episodios' : o.duracion_minutos + ' min'}} • {{o.genero}}</p>
                         <p class="text-yellow-500 text-xs font-black mb-4">★ {{o.calificacion_avg}}</p>
-                        <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Cortometraje</button>
+                        <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Obra</button>
                     </div>
                 </div>
             </div>
@@ -104,7 +113,7 @@
     </main>
 
     <!-- TOP MEJOR VALORADAS -->
-    <main v-if="view === 'top'" class="pt-32 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
+    <main v-if="view === 'top'" class="pt-10 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
         <h2 class="text-4xl font-black italic mb-8 uppercase">🏆 Mejor <span class="text-red-600">Valoradas</span></h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <div v-for="o in topObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 group cursor-pointer shadow-2xl" @click="verDetalle(o)">
@@ -112,16 +121,31 @@
                 <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
                     <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
                     <p class="text-yellow-500 text-sm font-black mb-4">★ {{o.calificacion_avg}}</p>
-                    <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Cortometraje</button>
+                    <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Obra</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PEOR VALORADAS -->
+    <main v-if="view === 'worst'" class="pt-10 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-black italic mb-8 uppercase">💀 Peor <span class="text-red-600">Valoradas</span></h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div v-for="o in worstObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 group cursor-pointer shadow-2xl" @click="verDetalle(o)">
+                <img :src="o.portada_url" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
+                    <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
+                    <p class="text-yellow-500 text-sm font-black mb-4">★ {{o.calificacion_avg || 0}}</p>
+                    <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Obra</button>
                 </div>
             </div>
         </div>
     </main>
 
     <!-- BIBLIOTECA (GUARDADOS) -->
-    <main v-if="view === 'library'" class="pt-32 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
-        <h2 class="text-4xl font-black italic mb-8 uppercase">Cortometrajes <span class="text-red-600">Guardados</span></h2>
-        <div v-if="libraryObras.length === 0" class="text-center py-20 text-gray-500 font-bold">No has guardado cortometrajes todavía.</div>
+    <main v-if="view === 'library'" class="pt-10 px-8 md:px-16 pb-20 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-black italic mb-8 uppercase">Obras <span class="text-red-600">Guardadas</span></h2>
+        <div v-if="libraryObras.length === 0" class="text-center py-20 text-gray-500 font-bold">No has guardado obras todavía.</div>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <div v-for="o in libraryObras" :key="o.id" class="movie-card relative aspect-[2/3] rounded-2xl overflow-hidden group cursor-pointer border border-white/10" @click="verDetalle(o)">
                 <img :src="o.portada_url" class="w-full h-full object-cover">
@@ -133,7 +157,7 @@
     </main>
 
     <!-- PERFIL USUARIO -->
-    <main v-if="view === 'profile'" class="pt-32 px-8 max-w-2xl mx-auto pb-20">
+    <main v-if="view === 'profile'" class="pt-10 px-8 max-w-2xl mx-auto pb-20">
         <div class="bg-card p-8 rounded-3xl border border-white/10">
             <h2 class="text-3xl font-black italic mb-8 uppercase text-center">Mi <span class="text-red-600">Perfil</span></h2>
             <div class="flex flex-col items-center mb-8">
@@ -159,16 +183,22 @@
         </div>
     </main>
 
-    <!-- FICHA Y REPRODUCTOR DE CORTOMETRAJE -->
-    <main v-if="view === 'detalle'" class="pt-28 px-8 md:px-16 max-w-6xl mx-auto pb-20">
+    <!-- FICHA Y REPRODUCTOR DE OBRA -->
+    <main v-if="view === 'detalle'" class="pt-10 px-8 md:px-16 max-w-6xl mx-auto pb-20">
         <button @click="view = 'home'" class="mb-6 text-gray-400 font-bold uppercase text-xs flex items-center gap-2">
             <i class="fas fa-arrow-left"></i> Volver al catálogo
         </button>
 
+        <!-- SESELECTOR DE PESTAÑAS DE VIDEO (PUNTAL/TRAILER) -->
+        <div class="flex gap-4 mb-4">
+            <button @click="reproduciendoTrailer = false" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="!reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver {{ obraActiva.es_serie ? 'Serie' : 'Película' }}</button>
+            <button v-if="obraActiva.trailer_url" @click="reproduciendoTrailer = true" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver Tráiler</button>
+        </div>
+
         <!-- REPRODUCTOR -->
-        <div v-if="currentVideoUrl" class="mb-8 bg-black rounded-3xl overflow-hidden aspect-video border border-white/10 shadow-2xl">
-            <video :key="currentVideoUrl" controls class="w-full h-full" :poster="obraActiva.portada_url">
-                <source :src="currentVideoUrl" type="video/mp4">
+        <div class="mb-8 bg-black rounded-3xl overflow-hidden aspect-video border border-white/10 shadow-2xl">
+            <video :key="reproduciendoTrailer ? obraActiva.trailer_url : currentVideoUrl" controls class="w-full h-full" :poster="obraActiva.portada_url">
+                <source :src="reproduciendoTrailer ? obraActiva.trailer_url : currentVideoUrl" type="video/mp4">
             </video>
         </div>
 
@@ -176,14 +206,14 @@
             <div>
                 <img :src="obraActiva.portada_url" class="w-full rounded-2xl shadow-xl mb-6 border border-white/10">
                 <div class="bg-white/5 p-6 rounded-2xl border border-white/10 text-center space-y-4">
-                    <p class="text-[10px] font-black uppercase text-gray-400">Calificar Cortometraje</p>
+                    <p class="text-[10px] font-black uppercase text-gray-400">Calificar Obra</p>
                     <div class="flex justify-center gap-2">
                         <i v-for="n in 5" :key="n" @click="calificarObra(n)" class="fas fa-star cursor-pointer text-2xl transition" :class="n <= userRating ? 'star-active' : 'star-inactive'"></i>
                     </div>
                     <p class="text-3xl font-black">★ {{obraActiva.calificacion_avg}}</p>
                     <button @click="toggleBiblioteca(obraActiva.id)" class="w-full py-3 bg-white text-black font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2">
                         <i class="fas" :class="userLibrary.includes(obraActiva.id) ? 'fa-heart text-red-600' : 'fa-heart-broken'"></i>
-                        {{ userLibrary.includes(obraActiva.id) ? 'En tus guardados' : 'Guardar Cortometraje' }}
+                        {{ userLibrary.includes(obraActiva.id) ? 'En tus guardados' : 'Guardar Obra' }}
                     </button>
                 </div>
             </div>
@@ -191,7 +221,9 @@
             <div class="md:col-span-2 space-y-6">
                 <div>
                     <h2 class="text-4xl md:text-5xl font-black italic uppercase tracking-tight mb-2">{{obraActiva.titulo}}</h2>
-                    <p class="text-gray-400 text-sm font-bold">{{obraActiva.duracion_minutos}} min • {{obraActiva.genero}} • {{obraActiva.pais_origen}}</p>
+                    <p class="text-gray-400 text-sm font-bold">
+                        {{ obraActiva.es_serie ? 'Serie (' + (obraActiva.num_episodios || 1) + ' Eps)' : obraActiva.duracion_minutos + ' min' }} • {{obraActiva.genero}} • {{obraActiva.pais_origen}}
+                    </p>
                 </div>
 
                 <!-- AUTOR Y APOYO -->
@@ -218,7 +250,7 @@
                     <h3 class="text-xl font-black uppercase italic">Comentarios</h3>
                     
                     <div v-if="user" class="flex gap-4">
-                        <input v-model="nuevoComentario" placeholder="Escribe tu opinión sobre el cortometraje..." class="flex-1 bg-white/5 border border-white/10 p-4 rounded-xl outline-none text-sm">
+                        <input v-model="nuevoComentario" placeholder="Escribe tu opinión sobre la obra..." class="flex-1 bg-white/5 border border-white/10 p-4 rounded-xl outline-none text-sm">
                         <button @click="enviarComentario" class="btn-cinema px-6 py-4 rounded-xl font-black text-xs uppercase">Comentar</button>
                     </div>
 
@@ -234,13 +266,13 @@
     </main>
 
     <!-- STUDIO DE CINEASTA (PANEL METRICAS) -->
-    <main v-if="view === 'dashboard'" class="pt-32 px-8 md:px-16 max-w-6xl mx-auto pb-20">
+    <main v-if="view === 'dashboard'" class="pt-10 px-8 md:px-16 max-w-6xl mx-auto pb-20">
         <div class="flex justify-between items-center mb-12">
             <div>
                 <h2 class="text-4xl font-black italic uppercase">Cineasta <span class="text-red-600">Studio</span></h2>
                 <p class="text-gray-400 text-sm font-bold">Gestiona y analiza el impacto de tus producciones</p>
             </div>
-            <button @click="showModal = true" class="btn-cinema px-8 py-4 rounded-2xl font-black uppercase text-xs">+ Subir Película</button>
+            <button @click="showModal = true" class="btn-cinema px-8 py-4 rounded-2xl font-black uppercase text-xs">+ Subir Obra</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -263,29 +295,44 @@
     <!-- MODAL DE PUBLICACIÓN -->
     <div v-if="showModal" class="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-8">
         <div class="bg-card border border-white/10 p-8 max-w-2xl w-full rounded-3xl max-h-[90vh] overflow-y-auto">
-            <h3 class="text-3xl font-black mb-6 italic uppercase">Subir <span class="text-red-600">Cortometraje</span></h3>
+            <h3 class="text-3xl font-black mb-6 italic uppercase">Subir <span class="text-red-600">Obra</span></h3>
             <div class="space-y-4">
                 <input v-model="formObra.titulo" placeholder="Título de la obra" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                
                 <div class="grid grid-cols-2 gap-4">
+                    <select v-model="formObra.es_serie" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                        <option :value="false">Película / Cortometraje</option>
+                        <option :value="true">Serie</option>
+                    </select>
                     <select v-model="formObra.genero" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
                         <option v-for="g in generosLista" :key="g" :value="g">{{g}}</option>
                     </select>
-                    <input v-model.number="formObra.duracion_minutos" type="number" placeholder="Duración (minutos)" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
                 </div>
-                
+
+                <div class="grid grid-cols-2 gap-4">
+                    <input v-if="!formObra.es_serie" v-model.number="formObra.duracion_minutos" type="number" placeholder="Duración (minutos)" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                    <input v-else v-model.number="formObra.num_episodios" type="number" placeholder="Número de episodios" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                    <input v-model="formObra.pais_origen" placeholder="País de origen" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                </div>
+
                 <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
-                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.video_url ? '✓ Video subido' : 'Seleccionar Video MP4' }}</span>
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.video_url ? '✓ Video Principal Subido' : 'Seleccionar Video Principal MP4' }}</span>
                     <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'obra_direct')" class="hidden">
                 </label>
 
                 <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
-                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.portada_url ? '✓ Póster cargado' : 'Seleccionar Póster (Imagen)' }}</span>
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.trailer_url ? '✓ Tráiler Subido' : 'Seleccionar Tráiler MP4 (Opcional)' }}</span>
+                    <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'trailer')" class="hidden">
+                </label>
+
+                <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formObra.portada_url ? '✓ Póster Cargado' : 'Seleccionar Póster (Imagen)' }}</span>
                     <input type="file" accept="image/*" @change="e => subirArchivo(e, 'portadas', 'obra')" class="hidden">
                 </label>
 
                 <textarea v-model="formObra.descripcion" placeholder="Sinopsis y créditos..." class="w-full bg-black border border-white/10 p-4 rounded-xl h-28 outline-none"></textarea>
 
-                <button @click="publicarObra" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Publicar Cortometraje</button>
+                <button @click="publicarObra" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Publicar Obra</button>
                 <button @click="showModal = false" class="w-full border border-white/10 py-3 rounded-xl font-bold uppercase text-xs text-gray-500">Cancelar</button>
             </div>
         </div>
@@ -323,13 +370,13 @@ createApp({
     data() {
         return {
             view: 'home', user: null, scrollY: 0, obras: [], misObras: [],
-            profile: {}, userLibrary: [], obraActiva: null,
+            profile: {}, userLibrary: [], obraActiva: null, reproduciendoTrailer: false,
             currentVideoUrl: '', userRating: 0, searchQuery: '', generoFiltro: '',
             comentariosActivos: [], nuevoComentario: '',
-            generosLista: ['Drama', 'Terror', 'Acción', 'Documental', 'Experimental', 'Comedia', 'Ciencia Ficción'],
+            generosLista: ['Drama', 'Terror', 'Acción', 'Documental', 'Experimental', 'Comedia', 'Ciencia Ficción', 'Animación', 'Suspenso', 'Fantasía', 'Romance', 'Misterio'],
             creds: { email: '', password: '' }, esRegistro: false,
             showModal: false,
-            formObra: { titulo: '', genero: 'Drama', tipo: 'corto', portada_url: '', video_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' }
+            formObra: { titulo: '', genero: 'Drama', es_serie: false, num_episodios: 1, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' }
         }
     },
     computed: {
@@ -344,6 +391,9 @@ createApp({
         },
         topObras() {
             return [...this.obras].sort((a,b) => (b.calificacion_avg || 0) - (a.calificacion_avg || 0));
+        },
+        worstObras() {
+            return [...this.obras].sort((a,b) => (a.calificacion_avg || 0) - (b.calificacion_avg || 0));
         },
         libraryObras() { return this.obras.filter(o => this.userLibrary.includes(o.id)); }
     },
@@ -402,6 +452,7 @@ createApp({
             const { data: { publicUrl } } = _client.storage.from(bucket).getPublicUrl(name);
             if(context === 'obra') this.formObra.portada_url = publicUrl;
             if(context === 'obra_direct') this.formObra.video_url = publicUrl;
+            if(context === 'trailer') this.formObra.trailer_url = publicUrl;
             if(context === 'profile') this.profile.avatar_url = publicUrl;
         },
         async publicarObra() {
@@ -413,11 +464,12 @@ createApp({
                 this.showModal = false;
                 await this.fetchObras();
                 await this.fetchMisObras();
-                this.formObra = { titulo: '', genero: 'Drama', tipo: 'corto', portada_url: '', video_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' };
+                this.formObra = { titulo: '', genero: 'Drama', es_serie: false, num_episodios: 1, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' };
             } else { alert("Error al publicar: " + error.message); }
         },
         async verDetalle(o) {
             this.obraActiva = o;
+            this.reproduciendoTrailer = false;
             this.currentVideoUrl = o.video_url || '';
             if(this.user) {
                 const { data: r } = await _client.from('valoraciones').select('puntuacion').eq('usuario_id', this.user.id).eq('obra_id', o.id).maybeSingle();
@@ -457,7 +509,7 @@ createApp({
             } catch(e) { alert("Error de autenticación: " + e.message); }
         },
         borrarObra(id) { 
-            if(confirm("¿Estás seguro de eliminar este cortometraje?")) { 
+            if(confirm("¿Estás seguro de eliminar esta obra?")) { 
                 _client.from('obras').delete().eq('id', id).then(() => { this.fetchObras(); this.fetchMisObras(); }); 
             } 
         },
