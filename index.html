@@ -67,7 +67,6 @@
 
     <!-- MAIN HOME -->
     <main v-if="view === 'home'">
-        <!-- SHORT OF THE WEEK FEATURE -->
         <header v-if="shortOfTheWeek && !generoFiltro" class="relative min-h-[70vh] flex items-end p-8 md:p-16 overflow-hidden pt-10">
             <img :src="shortOfTheWeek.portada_url" class="absolute inset-0 w-full h-full object-cover brightness-40">
             <div class="absolute inset-0 hero-gradient"></div>
@@ -77,7 +76,7 @@
                 </span>
                 <h2 class="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4">{{ shortOfTheWeek.titulo }}</h2>
                 <div class="flex items-center gap-4 text-sm text-gray-300 font-bold mb-6">
-                    <span class="bg-white/20 px-2 py-0.5 rounded text-xs uppercase">{{ shortOfTheWeek.es_serie ? 'Serie (' + (shortOfTheWeek.num_episodios || 1) + ' Eps)' : 'Película' }}</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded text-xs uppercase">{{ shortOfTheWeek.es_serie ? 'Serie' : 'Película' }}</span>
                     <span>{{ shortOfTheWeek.duracion_minutos }} min</span> • 
                     <span>{{ shortOfTheWeek.genero }}</span> • 
                     <span>{{ shortOfTheWeek.pais_origen }}</span> •
@@ -86,13 +85,12 @@
                 <p class="text-gray-300 text-base md:text-lg mb-8 line-clamp-3">{{ shortOfTheWeek.descripcion }}</p>
                 <div class="flex gap-4">
                     <button @click="verDetalle(shortOfTheWeek)" class="btn-cinema px-8 py-4 rounded-xl font-black uppercase text-xs flex items-center gap-2">
-                        <i class="fas fa-play"></i> Watch Film
+                        <i class="fas fa-play"></i> Watch
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- CATALOG SECTIONS -->
         <section class="px-8 md:px-16 py-10 bg-[#050505]">
             <h3 class="text-2xl md:text-3xl font-black italic mb-8 uppercase tracking-tight">
                 {{ generoFiltro ? 'Categoría: ' + generoFiltro : 'Catálogo Reciente' }}
@@ -103,7 +101,7 @@
                     <span v-if="o.es_serie" class="absolute top-3 left-3 bg-red-600 text-white font-black text-[9px] uppercase px-2 py-1 rounded">Serie</span>
                     <div class="overlay absolute inset-0 bg-black/80 opacity-0 flex flex-col justify-end p-5 transition-opacity text-center">
                         <h4 class="font-black text-lg mb-1 truncate">{{o.titulo}}</h4>
-                        <p class="text-gray-400 text-xs mb-2">{{o.es_serie ? o.num_episodios + ' Episodios' : o.duracion_minutos + ' min'}} • {{o.genero}}</p>
+                        <p class="text-gray-400 text-xs mb-2">{{o.es_serie ? 'Serie' : o.duracion_minutos + ' min'}} • {{o.genero}}</p>
                         <p class="text-yellow-500 text-xs font-black mb-4">★ {{o.calificacion_avg}}</p>
                         <button class="w-full bg-white text-black py-2 rounded font-black text-[10px] uppercase">Ver Obra</button>
                     </div>
@@ -183,16 +181,23 @@
         </div>
     </main>
 
-    <!-- FICHA Y REPRODUCTOR DE OBRA -->
+    <!-- FICHA Y REPRODUCTOR DE OBRA / SERIES -->
     <main v-if="view === 'detalle'" class="pt-10 px-8 md:px-16 max-w-6xl mx-auto pb-20">
         <button @click="view = 'home'" class="mb-6 text-gray-400 font-bold uppercase text-xs flex items-center gap-2">
             <i class="fas fa-arrow-left"></i> Volver al catálogo
         </button>
 
-        <!-- SESELECTOR DE PESTAÑAS DE VIDEO (PUNTAL/TRAILER) -->
-        <div class="flex gap-4 mb-4">
-            <button @click="reproduciendoTrailer = false" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="!reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver {{ obraActiva.es_serie ? 'Serie' : 'Película' }}</button>
-            <button v-if="obraActiva.trailer_url" @click="reproduciendoTrailer = true" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver Tráiler</button>
+        <div class="flex flex-wrap gap-4 mb-4 items-center justify-between">
+            <div class="flex gap-4">
+                <button @click="reproduciendoTrailer = false" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="!reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver {{ obraActiva.es_serie ? 'Episodio Actual' : 'Película' }}</button>
+                <button v-if="obraActiva.trailer_url" @click="reproduciendoTrailer = true" class="px-6 py-2 rounded-xl text-xs font-black uppercase border border-white/10" :class="reproduciendoTrailer ? 'bg-red-600 border-red-600' : 'bg-white/5'">Ver Tráiler</button>
+            </div>
+            
+            <!-- INFORMACIÓN DE AUDIO Y SUBTÍTULOS -->
+            <div class="flex gap-4 text-xs font-bold text-gray-400">
+                <span class="bg-white/5 px-3 py-1 rounded-lg border border-white/10">🎙️ Audio: {{ obraActiva.doblaje_idioma || 'Español' }}</span>
+                <span class="bg-white/5 px-3 py-1 rounded-lg border border-white/10">💬 Subtítulos: {{ obraActiva.subtitulo_idioma || 'Rumano' }}</span>
+            </div>
         </div>
 
         <!-- REPRODUCTOR -->
@@ -200,6 +205,23 @@
             <video :key="reproduciendoTrailer ? obraActiva.trailer_url : currentVideoUrl" controls class="w-full h-full" :poster="obraActiva.portada_url">
                 <source :src="reproduciendoTrailer ? obraActiva.trailer_url : currentVideoUrl" type="video/mp4">
             </video>
+        </div>
+
+        <!-- LISTA DE EPISODIOS (SI ES SERIE) -->
+        <div v-if="obraActiva.es_serie" class="mb-10 bg-white/5 p-6 rounded-3xl border border-white/10">
+            <h3 class="text-xl font-black uppercase italic mb-4">Episodios</h3>
+            <div v-if="episodiosActivos.length === 0" class="text-xs text-gray-400 font-bold">No hay episodios publicados para esta serie aún.</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-for="ep in episodiosActivos" :key="ep.id" 
+                     @click="currentVideoUrl = ep.video_url; reproduciendoTrailer = false;"
+                     class="flex justify-between items-center p-4 bg-black/50 border border-white/10 rounded-xl cursor-pointer hover:border-red-600 transition">
+                    <div>
+                        <span class="text-xs text-red-500 font-black uppercase">Episodio {{ ep.numero_episodio }}</span>
+                        <h4 class="font-bold text-sm">{{ ep.titulo }}</h4>
+                    </div>
+                    <span class="text-xs text-gray-400 font-bold">{{ ep.duracion_minutos }} min</span>
+                </div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -222,11 +244,10 @@
                 <div>
                     <h2 class="text-4xl md:text-5xl font-black italic uppercase tracking-tight mb-2">{{obraActiva.titulo}}</h2>
                     <p class="text-gray-400 text-sm font-bold">
-                        {{ obraActiva.es_serie ? 'Serie (' + (obraActiva.num_episodios || 1) + ' Eps)' : obraActiva.duracion_minutos + ' min' }} • {{obraActiva.genero}} • {{obraActiva.pais_origen}}
+                        {{ obraActiva.es_serie ? 'Serie' : obraActiva.duracion_minutos + ' min' }} • {{obraActiva.genero}} • {{obraActiva.pais_origen}}
                     </p>
                 </div>
 
-                <!-- AUTOR Y APOYO -->
                 <div class="bg-white/5 p-5 rounded-2xl flex items-center justify-between border border-white/10">
                     <div class="flex items-center gap-4">
                         <img :src="obraActiva.perfiles?.avatar_url || 'https://i.pravatar.cc/150'" class="w-12 h-12 rounded-full border border-red-600 object-cover">
@@ -272,7 +293,7 @@
                 <h2 class="text-4xl font-black italic uppercase">Cineasta <span class="text-red-600">Studio</span></h2>
                 <p class="text-gray-400 text-sm font-bold">Gestiona y analiza el impacto de tus producciones</p>
             </div>
-            <button @click="showModal = true" class="btn-cinema px-8 py-4 rounded-2xl font-black uppercase text-xs">+ Subir Obra</button>
+            <button @click="showModal = true" class="btn-cinema px-8 py-4 rounded-2xl font-black uppercase text-xs">+ Subir Obra / Serie</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -285,14 +306,15 @@
                         <span>★ {{ m.calificacion_avg || 0 }} Rating</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button @click="borrarObra(m.id)" class="w-full bg-red-600/20 text-red-500 py-3 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition">Eliminar</button>
+                <div class="flex flex-col gap-2">
+                    <button v-if="m.es_serie" @click="abrirModalEpisodio(m)" class="w-full bg-white/10 border border-white/10 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-white/20 transition">+ Agregar Capítulo</button>
+                    <button @click="borrarObra(m.id)" class="w-full bg-red-600/20 text-red-500 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition">Eliminar</button>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- MODAL DE PUBLICACIÓN -->
+    <!-- MODAL DE PUBLICACIÓN DE OBRA -->
     <div v-if="showModal" class="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-8">
         <div class="bg-card border border-white/10 p-8 max-w-2xl w-full rounded-3xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-3xl font-black mb-6 italic uppercase">Subir <span class="text-red-600">Obra</span></h3>
@@ -311,11 +333,26 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <input v-if="!formObra.es_serie" v-model.number="formObra.duracion_minutos" type="number" placeholder="Duración (minutos)" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
-                    <input v-else v-model.number="formObra.num_episodios" type="number" placeholder="Número de episodios" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
                     <input v-model="formObra.pais_origen" placeholder="País de origen" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
                 </div>
 
-                <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
+                <!-- SELECTORES DE IDIOMAS (40 IDIOMAS CON RUMANO INCLUIDO) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Idioma del Doblaje/Audio</label>
+                        <select v-model="formObra.doblaje_idioma" class="w-full bg-black border border-white/10 p-3 rounded-xl outline-none text-xs">
+                            <option v-for="lang in idiomasLista" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Idioma de Subtítulos</label>
+                        <select v-model="formObra.subtitulo_idioma" class="w-full bg-black border border-white/10 p-3 rounded-xl outline-none text-xs">
+                            <option v-for="lang in idiomasLista" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label v-if="!formObra.es_serie" class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
                     <span class="text-xs font-black uppercase text-gray-300">{{ formObra.video_url ? '✓ Video Principal Subido' : 'Seleccionar Video Principal MP4' }}</span>
                     <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'obra_direct')" class="hidden">
                 </label>
@@ -334,6 +371,28 @@
 
                 <button @click="publicarObra" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Publicar Obra</button>
                 <button @click="showModal = false" class="w-full border border-white/10 py-3 rounded-xl font-bold uppercase text-xs text-gray-500">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE AGREGAR EPISODIO A SERIE -->
+    <div v-if="showModalEpisodio" class="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-8">
+        <div class="bg-card border border-white/10 p-8 max-w-xl w-full rounded-3xl">
+            <h3 class="text-2xl font-black mb-6 italic uppercase">Nuevo Capítulo: <span class="text-red-600">{{ serieSeleccionada?.titulo }}</span></h3>
+            <div class="space-y-4">
+                <input v-model="formEpisodio.titulo" placeholder="Título del Episodio" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                <div class="grid grid-cols-2 gap-4">
+                    <input v-model.number="formEpisodio.numero_episodio" type="number" placeholder="Número de Episodio" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                    <input v-model.number="formEpisodio.duracion_minutos" type="number" placeholder="Duración (min)" class="w-full bg-black border border-white/10 p-4 rounded-xl outline-none">
+                </div>
+
+                <label class="block p-4 border-2 border-dashed border-white/10 rounded-xl text-center cursor-pointer">
+                    <span class="text-xs font-black uppercase text-gray-300">{{ formEpisodio.video_url ? '✓ Video del Capítulo Subido' : 'Seleccionar Video MP4 del Capítulo' }}</span>
+                    <input type="file" accept="video/mp4" @change="e => subirArchivo(e, 'videos', 'episodio')" class="hidden">
+                </label>
+
+                <button @click="publicarEpisodio" class="w-full btn-cinema py-4 rounded-xl font-black uppercase text-xs">Guardar Capítulo</button>
+                <button @click="showModalEpisodio = false" class="w-full border border-white/10 py-3 rounded-xl font-bold uppercase text-xs text-gray-500">Cancelar</button>
             </div>
         </div>
     </div>
@@ -370,13 +429,20 @@ createApp({
     data() {
         return {
             view: 'home', user: null, scrollY: 0, obras: [], misObras: [],
-            profile: {}, userLibrary: [], obraActiva: null, reproduciendoTrailer: false,
+            profile: {}, userLibrary: [], obraActiva: null, episodiosActivos: [], reproduciendoTrailer: false,
             currentVideoUrl: '', userRating: 0, searchQuery: '', generoFiltro: '',
             comentariosActivos: [], nuevoComentario: '',
             generosLista: ['Drama', 'Terror', 'Acción', 'Documental', 'Experimental', 'Comedia', 'Ciencia Ficción', 'Animación', 'Suspenso', 'Fantasía', 'Romance', 'Misterio'],
+            idiomasLista: [
+                'Rumano', 'Español Original', 'Español Latino', 'Español España', 'Inglés', 'Francés', 'Alemán', 'Italiano', 'Portugués', 'Ruso',
+                'Japonés', 'Chino Mandarín', 'Coreano', 'Árabe', 'Hindi', 'Bengala', 'Polaco', 'Holandés', 'Sueco', 'Noruego',
+                'Danés', 'Finés', 'Griego', 'Turco', 'Hebreo', 'Tailandés', 'Vietnamita', 'Indonesio', 'Ucraniano', 'Checo',
+                'Húngaro', 'Eslovaco', 'Búlgaro', 'Croata', 'Serbio', 'Lituano', 'Letón', 'Estonio', 'Catalán', 'Euskera'
+            ],
             creds: { email: '', password: '' }, esRegistro: false,
-            showModal: false,
-            formObra: { titulo: '', genero: 'Drama', es_serie: false, num_episodios: 1, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' }
+            showModal: false, showModalEpisodio: false, serieSeleccionada: null,
+            formObra: { titulo: '', genero: 'Drama', es_serie: false, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México', doblaje_idioma: 'Español Original', subtitulo_idioma: 'Rumano' },
+            formEpisodio: { titulo: '', numero_episodio: 1, duracion_minutos: 20, video_url: '' }
         }
     },
     computed: {
@@ -453,6 +519,7 @@ createApp({
             if(context === 'obra') this.formObra.portada_url = publicUrl;
             if(context === 'obra_direct') this.formObra.video_url = publicUrl;
             if(context === 'trailer') this.formObra.trailer_url = publicUrl;
+            if(context === 'episodio') this.formEpisodio.video_url = publicUrl;
             if(context === 'profile') this.profile.avatar_url = publicUrl;
         },
         async publicarObra() {
@@ -464,13 +531,32 @@ createApp({
                 this.showModal = false;
                 await this.fetchObras();
                 await this.fetchMisObras();
-                this.formObra = { titulo: '', genero: 'Drama', es_serie: false, num_episodios: 1, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México' };
+                this.formObra = { titulo: '', genero: 'Drama', es_serie: false, portada_url: '', video_url: '', trailer_url: '', descripcion: '', duracion_minutos: 10, pais_origen: '🇲🇽 México', doblaje_idioma: 'Español Original', subtitulo_idioma: 'Rumano' };
             } else { alert("Error al publicar: " + error.message); }
+        },
+        abrirModalEpisodio(obra) {
+            this.serieSeleccionada = obra;
+            this.formEpisodio = { titulo: '', numero_episodio: 1, duracion_minutos: 20, video_url: '' };
+            this.showModalEpisodio = true;
+        },
+        async publicarEpisodio() {
+            if(!this.formEpisodio.video_url) return alert("Debes cargar el video del episodio.");
+            const payload = { ...this.formEpisodio, obra_id: this.serieSeleccionada.id };
+            const { error } = await _client.from('episodios').insert(payload);
+            if(!error) {
+                alert("Episodio guardado exitosamente.");
+                this.showModalEpisodio = false;
+            } else { alert("Error al guardar episodio: " + error.message); }
         },
         async verDetalle(o) {
             this.obraActiva = o;
             this.reproduciendoTrailer = false;
             this.currentVideoUrl = o.video_url || '';
+            if(o.es_serie) {
+                const { data: eps } = await _client.from('episodios').select('*').eq('obra_id', o.id).order('numero_episodio', {ascending: true});
+                this.episodiosActivos = eps || [];
+                if(this.episodiosActivos.length > 0) this.currentVideoUrl = this.episodiosActivos[0].video_url;
+            }
             if(this.user) {
                 const { data: r } = await _client.from('valoraciones').select('puntuacion').eq('usuario_id', this.user.id).eq('obra_id', o.id).maybeSingle();
                 this.userRating = r ? r.puntuacion : 0;
