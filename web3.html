@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS Studio Web3 - Smart Contract IDE & Learning Playground</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        vs: {
+                            bg: '#1e1e1e',
+                            sidebar: '#252526',
+                            panel: '#2d2d2d',
+                            border: '#3e3e42',
+                            accent: '#007acc',
+                            accentHover: '#1c97ea',
+                            header: '#323233',
+                            tabActive: '#1e1e1e',
+                            tabInactive: '#2d2d2d',
+                            status: '#007acc',
+                            solidity: '#627eea',
+                            eth: '#3c3c3d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CodeMirror 5 CSS & JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+            font-size: 13.5px;
+            background-color: #1e1e1e !important;
+            color: #d4d4d4 !important;
+        }
+        .CodeMirror-gutters {
+            border-right: 1px solid #333333;
+            background-color: #1e1e1e;
+        }
+        .cm-solidity-keyword { color: #569cd6; font-weight: bold; }
+        .cm-solidity-type { color: #4ec9b0; }
+        .cm-solidity-builtin { color: #ce9178; }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3e3e42;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555555;
+        }
+    </style>
+</head>
+<body class="bg-vs-bg text-gray-300 h-full flex flex-col font-sans overflow-hidden select-none">
+
+    <!-- VISUAL STUDIO TOP HEADER BAR -->
+    <header class="bg-vs-header border-b border-vs-border flex flex-col shrink-0 text-xs">
+        <div class="h-8 flex items-center justify-between px-3 bg-vs-header text-gray-300">
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 font-bold text-indigo-400">
+                    <i class="fa-brands fa-ethereum text-lg text-purple-400"></i>
+                    <span class="tracking-wide">VS Studio Web3</span>
+                </div>
+                <div class="flex space-x-1">
+                    <button onclick="createNewFile()" class="px-2 py-1 hover:bg-vs-panel rounded text-gray-300">Archivo</button>
+                    <button onclick="compileSolidity()" class="px-2 py-1 hover:bg-vs-panel rounded text-gray-300">Compilar (F5)</button>
+                    <button onclick="deployContract()" class="px-2 py-1 hover:bg-vs-panel rounded text-emerald-400 font-semibold">Desplegar</button>
+                    <button onclick="openSnippetsModal()" class="px-2 py-1 hover:bg-vs-panel rounded text-sky-400">Plantillas</button>
+                    <button onclick="openSettingsModal()" class="px-2 py-1 hover:bg-vs-panel rounded text-gray-300">Ajustes</button>
+                </div>
+            </div>
+
+            <!-- Web3 Network & Wallet Selector Bar -->
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-1 bg-vs-panel border border-vs-border rounded px-2 py-0.5">
+                    <i class="fa-solid fa-network-wired text-sky-400 text-[10px]"></i>
+                    <select id="networkSelect" onchange="switchNetwork()" class="bg-transparent text-gray-200 text-xs focus:outline-none cursor-pointer">
+                        <option value="hardhat">Hardhat Localhost (ChainID: 31337)</option>
+                        <option value="sepolia">Ethereum Sepolia Testnet</option>
+                        <option value="polygon">Polygon Amoy Testnet</option>
+                        <option value="solana">Solana Devnet (Simulated)</option>
+                    </select>
+                </div>
+
+                <button id="walletBtn" onclick="toggleWalletConnection()" class="bg-vs-accent hover:bg-vs-accentHover text-white px-3 py-1 rounded text-xs flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="walletBtnText">Conectar Wallet</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Toolbar -->
+        <div class="h-9 bg-vs-sidebar border-t border-vs-border/50 px-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button onclick="compileSolidity()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-1 rounded flex items-center space-x-1.5 transition text-xs">
+                    <i class="fa-solid fa-hammer"></i>
+                    <span>Compilar Solidity</span>
+                </button>
+
+                <button onclick="deployContract()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-medium px-3 py-1 rounded flex items-center space-x-1.5 transition text-xs">
+                    <i class="fa-solid fa-rocket"></i>
+                    <span>Desplegar Contrato</span>
+                </button>
+
+                <div class="h-4 w-px bg-vs-border mx-1"></div>
+
+                <input type="file" id="fileImportInput" class="hidden" accept=".sol,.js,.json,.html" onchange="handleFileImport(event)" multiple>
+                <button onclick="document.getElementById('fileImportInput').click()" class="bg-vs-panel hover:bg-neutral-700 text-gray-300 px-2.5 py-1 rounded border border-vs-border flex items-center space-x-1 text-xs">
+                    <i class="fa-solid fa-file-import text-sky-400"></i>
+                    <span>Importar</span>
+                </button>
+                <button onclick="exportActiveFile()" class="bg-vs-panel hover:bg-neutral-700 text-gray-300 px-2.5 py-1 rounded border border-vs-border text-xs" title="Guardar archivo">
+                    <i class="fa-solid fa-floppy-disk text-emerald-400"></i>
+                    <span>Guardar</span>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-2 text-xs text-gray-400">
+                <span id="activeCompilerBadge" class="bg-purple-950/80 text-purple-300 border border-purple-800/60 px-2 py-0.5 rounded">solc v0.8.24</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- SOLUTION EXPLORER SIDEBAR -->
+        <aside class="w-64 bg-vs-sidebar border-r border-vs-border flex flex-col shrink-0">
+            <div class="p-2 border-b border-vs-border flex justify-between items-center bg-vs-panel/40">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-folder-tree text-indigo-400"></i>
+                    <span>Explorador DApp</span>
+                </span>
+                <button onclick="createNewFile()" class="p-1 hover:bg-vs-border rounded text-gray-400 hover:text-white" title="Nuevo Archivo">
+                    <i class="fa-solid fa-file-circle-plus text-xs"></i>
+                </button>
+            </div>
+
+            <div id="fileList" class="flex-1 overflow-y-auto p-1 space-y-0.5"></div>
+
+            <div class="p-2 border-t border-vs-border bg-vs-panel/30 text-[11px] text-gray-400 flex justify-between">
+                <span>Archivos Web3:</span>
+                <span id="totalFilesCount" class="text-gray-200 font-mono">0</span>
+            </div>
+        </aside>
+
+        <!-- CENTER EDITOR & BOTTOM PANEL -->
+        <main class="flex-1 flex flex-col min-w-0 bg-vs-bg">
+            <!-- TAB BAR -->
+            <div id="tabBar" class="h-8 bg-vs-sidebar border-b border-vs-border flex items-center overflow-x-auto shrink-0 select-none"></div>
+
+            <!-- CODEMIRROR CONTAINER -->
+            <div class="flex-1 relative overflow-hidden">
+                <textarea id="codeEditor"></textarea>
+            </div>
+
+            <!-- BOTTOM PANEL (OUTPUT CONSOLE, PREVIEW, INSPECTOR, BLOCKCHAIN) -->
+            <div class="h-72 bg-vs-bg border-t border-vs-border flex flex-col shrink-0">
+                <div class="bg-vs-panel/80 border-b border-vs-border px-3 py-1 flex justify-between items-center text-xs">
+                    <div class="flex space-x-4">
+                        <button onclick="switchTerminalTab('output')" id="tabBtnOutput" class="text-indigo-400 font-bold border-b-2 border-indigo-400 pb-0.5">
+                            <i class="fa-solid fa-terminal mr-1"></i>Salida & Logs
+                        </button>
+                        <button onclick="switchTerminalTab('inspector')" id="tabBtnInspector" class="text-gray-400 hover:text-gray-200 pb-0.5 flex items-center space-x-1">
+                            <i class="fa-solid fa-sliders text-amber-400"></i>
+                            <span>Inspector de Contrato</span>
+                        </button>
+                        <button onclick="switchTerminalTab('blockchain')" id="tabBtnBlockchain" class="text-gray-400 hover:text-gray-200 pb-0.5 flex items-center space-x-1">
+                            <i class="fa-solid fa-cubes text-sky-400"></i>
+                            <span>Bloques de Red EVM</span>
+                        </button>
+                        <button onclick="switchTerminalTab('preview')" id="tabBtnPreview" class="text-gray-400 hover:text-gray-200 pb-0.5 flex items-center space-x-1">
+                            <i class="fa-solid fa-desktop text-emerald-400"></i>
+                            <span>Vista Previa Frontend DApp</span>
+                        </button>
+                    </div>
+                    <button onclick="clearTerminal()" class="text-gray-400 hover:text-gray-200" title="Limpiar"><i class="fa-solid fa-eraser"></i></button>
+                </div>
+
+                <!-- Output Log Panel -->
+                <div id="termOutput" class="flex-1 p-3 font-mono text-xs overflow-y-auto text-gray-300 leading-relaxed bg-[#121212] space-y-1">
+                    <div class="text-gray-500 italic">Entorno listo. Selecciona o edita un contrato Solidity y presiona 'Compilar' o 'Desplegar'.</div>
+                </div>
+
+                <!-- Contract Inspector Panel -->
+                <div id="termInspector" class="hidden flex-1 p-3 overflow-y-auto bg-vs-sidebar text-xs">
+                    <div id="inspectorContainer" class="space-y-3">
+                        <div class="text-gray-400 italic">No hay ningún contrato desplegado. Haz clic en "Desplegar Contrato" para habilitar la interacción.</div>
+                    </div>
+                </div>
+
+                <!-- Blockchain Explorer Panel -->
+                <div id="termBlockchain" class="hidden flex-1 p-3 overflow-y-auto bg-vs-sidebar text-xs">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-sky-400">Historial de Bloques Minados</span>
+                        <span id="latestBlockBadge" class="bg-sky-950 text-sky-300 px-2 py-0.5 rounded border border-sky-800">Último Bloque: #0</span>
+                    </div>
+                    <div id="blockchainBlocksList" class="space-y-2"></div>
+                </div>
+
+                <!-- Live Frontend DApp Preview -->
+                <div id="termPreview" class="hidden flex-1 bg-white relative">
+                    <iframe id="previewFrame" class="w-full h-full border-0"></iframe>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: EVM SIMULATOR & WALLET MANAGER -->
+        <aside class="w-80 bg-vs-sidebar border-l border-vs-border flex flex-col shrink-0">
+            <div class="p-2 border-b border-vs-border bg-vs-panel/50 flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span>Simulador EVM & Wallet</span>
+                </span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+                <!-- Account Selector -->
+                <div class="bg-vs-panel/60 p-2.5 rounded border border-vs-border space-y-2">
+                    <label class="font-bold text-indigo-300 block">Cuenta Test Activa:</label>
+                    <select id="accountSelect" onchange="switchAccount()" class="w-full bg-vs-bg border border-vs-border rounded p-1.5 text-xs text-gray-200 font-mono">
+                    </select>
+
+                    <div class="flex justify-between text-[11px] text-gray-400 pt-1">
+                        <span>Balance ETH:</span>
+                        <span id="activeAccountBalance" class="text-emerald-400 font-bold font-mono">100.00 ETH</span>
+                    </div>
+                </div>
+
+                <!-- Gas & Tx Settings -->
+                <div class="bg-vs-panel/60 p-2.5 rounded border border-vs-border space-y-2">
+                    <h4 class="font-bold text-amber-400 text-xs">Parámetros de Transacción</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-gray-400 text-[10px] block">Gas Limit:</label>
+                            <input type="number" id="gasLimitInput" value="3000000" class="w-full bg-vs-bg border border-vs-border rounded p-1 text-gray-200 font-mono text-xs">
+                        </div>
+                        <div>
+                            <label class="text-gray-400 text-[10px] block">Valor (Wei/ETH):</label>
+                            <input type="number" id="txValueInput" value="0" class="w-full bg-vs-bg border border-vs-border rounded p-1 text-gray-200 font-mono text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Feed -->
+                <div class="bg-vs-panel/60 p-2.5 rounded border border-vs-border flex-1 flex flex-col">
+                    <h4 class="font-bold text-sky-400 mb-2 flex justify-between items-center text-xs">
+                        <span><i class="fa-solid fa-receipt mr-1"></i> Transacciones</span>
+                        <span id="txCountBadge" class="text-[10px] bg-vs-bg px-1.5 py-0.5 rounded text-gray-400">0</span>
+                    </h4>
+                    <div id="txHistoryList" class="space-y-1.5 font-mono text-[11px] max-h-56 overflow-y-auto pr-1">
+                        <div class="text-gray-500 italic">No hay transacciones ejecutadas.</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- STATUS BAR -->
+    <footer class="h-6 bg-vs-status border-t border-vs-border px-3 flex items-center justify-between text-[11px] text-white shrink-0">
+        <div class="flex items-center space-x-4">
+            <span id="statusMessage" class="flex items-center space-x-1">
+                <i class="fa-solid fa-check text-emerald-300"></i>
+                <span>EVM Listo</span>
+            </span>
+            <span>|</span>
+            <span id="cursorPos">Línea: 1, Columna: 1</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span>UTF-8</span>
+            <span id="activeDialectBadge">Solidity 0.8.24</span>
+        </div>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="snippetsModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-vs-sidebar border border-vs-border rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-3 border-b border-vs-border flex justify-between items-center bg-vs-panel/50">
+                <h3 class="font-bold text-sm text-indigo-400">Plantillas de Contratos Web3</h3>
+                <button onclick="closeSnippetsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-3">
+                <div class="border border-vs-border p-3 rounded hover:border-indigo-500 cursor-pointer bg-vs-panel/40 transition" onclick="loadSnippet('storage')">
+                    <h4 class="font-bold text-xs text-indigo-300">1. SimpleStorage.sol</h4>
+                    <p class="text-xs text-gray-400 mt-1">Almacenamiento básico de datos, modificación de estado y eventos de log.</p>
+                </div>
+                <div class="border border-vs-border p-3 rounded hover:border-indigo-500 cursor-pointer bg-vs-panel/40 transition" onclick="loadSnippet('erc20')">
+                    <h4 class="font-bold text-xs text-emerald-400">2. ERC20 Token (MyToken.sol)</h4>
+                    <p class="text-xs text-gray-400 mt-1">Implementación completa de token fungible con transferencia, saldos y minado.</p>
+                </div>
+                <div class="border border-vs-border p-3 rounded hover:border-indigo-500 cursor-pointer bg-vs-panel/40 transition" onclick="loadSnippet('erc721')">
+                    <h4 class="font-bold text-xs text-amber-400">3. ERC721 NFT (CryptoArt.sol)</h4>
+                    <p class="text-xs text-gray-400 mt-1">Contrato de NFT de arte digital con minado de IDs únicos y metadata URI.</p>
+                </div>
+                <div class="border border-vs-border p-3 rounded hover:border-indigo-500 cursor-pointer bg-vs-panel/40 transition" onclick="loadSnippet('dapp')">
+                    <h4 class="font-bold text-xs text-sky-400">4. Client DApp Frontend (index.html)</h4>
+                    <p class="text-xs text-gray-400 mt-1">Código de interfaz cliente HTML/JS listo para conectarse al contrato con Web3.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-vs-sidebar border border-vs-border rounded-lg w-full max-w-md p-4 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-vs-border pb-2">
+                <h3 class="font-bold text-sm text-gray-200">Ajustes del Editor</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1">Tamaño de Fuente Editor (px)</label>
+                    <input type="number" id="settingFontSize" value="14" min="10" max="24" onchange="applySettings()" class="w-full bg-vs-panel border border-vs-border rounded p-1.5 text-gray-200">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web3 Initial Default State
+        let mockAccounts = [
+            { address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', key: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', balance: 100.00 },
+            { address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', key: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', balance: 100.00 },
+            { address: '0x3C44CdD05aB7238165485182428C06345E2D0749', key: '0x5de4111 narrow...', balance: 100.00 },
+            { address: '0x90F79bf6EB2c4f80806530122429702cc7094054', key: '0x7c85211...', balance: 100.00 },
+            { address: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', key: '0x47e179e...', balance: 100.00 }
+        ];
+
+        let activeAccountIndex = 0;
+        let isWalletConnected = false;
+        let blockchainBlocks = [];
+        let transactions = [];
+        let deployedContracts = {};
+        let currentDeployedAddress = null;
+
+        let files = [
+            {
+                name: 'SimpleStorage.sol',
+                language: 'solidity',
+                content: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract SimpleStorage {\n    uint256 private storedData;\n    address public owner;\n\n    event DataChanged(uint256 newValue, address updatedBy);\n\n    constructor() {\n        owner = msg.sender;\n        storedData = 100;\n    }\n\n    function set(uint256 x) public {\n        storedData = x;\n        emit DataChanged(x, msg.sender);\n    }\n\n    function get() public view returns (uint256) {\n        return storedData;\n    }\n}`
+            },
+            {
+                name: 'MyToken.sol',
+                language: 'solidity',
+                content: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract MyToken {\n    string public name = "Web3 Learn Token";\n    string public symbol = "W3L";\n    uint256 public totalSupply = 1000000;\n    mapping(address => uint256) public balanceOf;\n\n    event Transfer(address indexed from, address indexed to, uint256 value);\n\n    constructor() {\n        balanceOf[msg.sender] = totalSupply;\n    }\n\n    function transfer(address to, uint256 amount) public returns (bool) {\n        require(balanceOf[msg.sender] >= amount, "Balance insuficiente");\n        balanceOf[msg.sender] -= amount;\n        balanceOf[to] += amount;\n        emit Transfer(msg.sender, to, amount);\n        return true;\n    }\n}`
+            },
+            {
+                name: 'app.js',
+                language: 'javascript',
+                content: `// Código Web3 para interactuar con contratos desplegados\nasync function initDApp() {\n    console.log("Iniciando DApp cliente...");\n    if (window.ethereum) {\n        console.log("MetaMask detectado!");\n    }\n}\n\ninitDApp();`
+            },
+            {
+                name: 'index.html',
+                language: 'html',
+                content: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: system-ui, sans-serif; background: #0f172a; color: white; text-align: center; padding: 2rem; }\n    .card { background: #1e293b; border-radius: 8px; padding: 1.5rem; max-width: 400px; margin: auto; border: 1px solid #334155; }\n    button { background: #6366f1; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: bold; }\n    button:hover { background: #4f46e5; }\n  </style>\n</head>\n<body>\n  <div class="card">\n    <h2>Web3 DApp Client</h2>\n    <p>Conectado a Smart Contract</p>\n    <button onclick="alert('Conectando a Web3 Provider...')">Conectar Wallet</button>\n  </div>\n</body>\n</html>`
+            }
+        ];
+
+        let activeFileIndex = 0;
+        let editor;
+
+        // Custom Solidity Syntax Highlighting Mode for CodeMirror
+        CodeMirror.defineMode("solidity", function() {
+            const keywords = ["pragma", "solidity", "contract", "library", "interface", "function", "returns", "return", "public", "private", "internal", "external", "pure", "view", "payable", "memory", "storage", "calldata", "event", "emit", "modifier", "require", "constructor", "address", "uint256", "uint8", "int256", "bool", "string", "bytes32", "mapping", "struct", "import", "using", "for", "if", "else", "msg", "sender", "value", "tx", "block", "timestamp"];
+            
+            return {
+                token: function(stream, state) {
+                    if (stream.eatSpace()) return null;
+                    if (stream.match("//")) { stream.skipToEnd(); return "comment"; }
+                    if (stream.match("/*")) { state.inComment = true; return "comment"; }
+                    if (stream.match(/^"([^"\\]|\\.)*"/)) return "string";
+                    if (stream.match(/^0x[a-fA-F0-9]+/)) return "number";
+                    if (stream.match(/^[0-9]+/)) return "number";
+
+                    var word = stream.match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
+                    if (word) {
+                        if (keywords.includes(word[0])) {
+                            return "keyword cm-solidity-keyword";
+                        }
+                        return "variable";
+                    }
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        window.onload = function() {
+            // Initialize CodeMirror
+            editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+                mode: 'solidity',
+                theme: 'dracula',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true
+            });
+
+            editor.on("cursorActivity", function() {
+                const pos = editor.getCursor();
+                document.getElementById('cursorPos').innerText = `Línea: ${pos.line + 1}, Columna: ${pos.ch + 1}`;
+            });
+
+            editor.on("change", function() {
+                if (files[activeFileIndex]) {
+                    files[activeFileIndex].content = editor.getValue();
+                }
+            });
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', function(e) {
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    compileSolidity();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    exportActiveFile();
+                }
+            });
+
+            populateAccounts();
+            renderFileList();
+            renderTabs();
+            loadFileContent(0);
+            genesisBlock();
+        };
+
+        function populateAccounts() {
+            const select = document.getElementById('accountSelect');
+            select.innerHTML = '';
+            mockAccounts.forEach((acc, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `${acc.address.substring(0, 8)}...${acc.address.substring(36)} (${acc.balance} ETH)`;
+                select.appendChild(opt);
+            });
+            updateActiveAccountUI();
+        }
+
+        function switchAccount() {
+            activeAccountIndex = parseInt(document.getElementById('accountSelect').value);
+            updateActiveAccountUI();
+            logConsole(`[EVM] Cuenta cambiada a: ${mockAccounts[activeAccountIndex].address}`, 'text-sky-400');
+        }
+
+        function updateActiveAccountUI() {
+            const acc = mockAccounts[activeAccountIndex];
+            document.getElementById('activeAccountBalance').innerText = `${acc.balance.toFixed(2)} ETH`;
+        }
+
+        function renderFileList() {
+            const listEl = document.getElementById('fileList');
+            listEl.innerHTML = '';
+            document.getElementById('totalFilesCount').innerText = files.length;
+
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between px-2 py-1 text-xs rounded cursor-pointer group ${index === activeFileIndex ? 'bg-indigo-950/60 text-indigo-300 font-semibold border-l-2 border-indigo-500' : 'text-gray-400 hover:bg-vs-panel/60 hover:text-gray-200'}`;
+                item.onclick = () => switchFile(index);
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2 truncate">
+                        <i class="${getFileIcon(file.name)} text-xs"></i>
+                        <span class="truncate">${file.name}</span>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 flex space-x-1">
+                        <button onclick="renameFile(event, ${index})" class="hover:text-amber-400 p-0.5"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteFile(event, ${index})" class="hover:text-red-400 p-0.5"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function getFileIcon(filename) {
+            if (filename.endsWith('.sol')) return 'fa-brands fa-ethereum text-purple-400';
+            if (filename.endsWith('.js')) return 'fa-brands fa-js text-yellow-400';
+            if (filename.endsWith('.html')) return 'fa-brands fa-html5 text-orange-400';
+            return 'fa-solid fa-file-code text-sky-400';
+        }
+
+        function renderTabs() {
+            const tabBar = document.getElementById('tabBar');
+            tabBar.innerHTML = '';
+            files.forEach((file, index) => {
+                const tab = document.createElement('div');
+                tab.className = `px-3 h-full flex items-center space-x-2 text-xs border-r border-vs-border cursor-pointer shrink-0 ${index === activeFileIndex ? 'bg-vs-tabActive text-indigo-300 font-medium border-t-2 border-t-indigo-500' : 'bg-vs-tabInactive text-gray-400 hover:bg-vs-panel'}`;
+                tab.onclick = () => switchFile(index);
+                tab.innerHTML = `
+                    <i class="${getFileIcon(file.name)} text-[11px]"></i>
+                    <span>${file.name}</span>
+                    <i class="fa-solid fa-xmark text-[10px] hover:text-red-400 ml-1" onclick="deleteFile(event, ${index})"></i>
+                `;
+                tabBar.appendChild(tab);
+            });
+        }
+
+        function switchFile(index) {
+            if (index < 0 || index >= files.length) return;
+            files[activeFileIndex].content = editor.getValue();
+            activeFileIndex = index;
+            loadFileContent(index);
+            renderFileList();
+            renderTabs();
+        }
+
+        function loadFileContent(index) {
+            const file = files[index];
+            editor.setValue(file.content);
+            let mode = 'solidity';
+            if (file.name.endsWith('.js')) mode = 'javascript';
+            else if (file.name.endsWith('.html')) mode = 'htmlmixed';
+            editor.setOption('mode', mode);
+        }
+
+        function createNewFile() {
+            const name = prompt("Nombre del archivo (ej: Storage.sol, client.js, index.html):", "Contract.sol");
+            if (!name) return;
+            files.push({
+                name: name,
+                language: name.endsWith('.sol') ? 'solidity' : (name.endsWith('.js') ? 'javascript' : 'html'),
+                content: name.endsWith('.sol') ? '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract MyContract {\n    uint256 public count = 0;\n}' : ''
+            });
+            switchFile(files.length - 1);
+        }
+
+        function renameFile(event, index) {
+            event.stopPropagation();
+            const newName = prompt("Nuevo nombre de archivo:", files[index].name);
+            if (newName) {
+                files[index].name = newName;
+                renderFileList();
+                renderTabs();
+            }
+        }
+
+        function deleteFile(event, index) {
+            event.stopPropagation();
+            if (files.length <= 1) return;
+            files.splice(index, 1);
+            if (activeFileIndex >= files.length) activeFileIndex = files.length - 1;
+            renderFileList();
+            renderTabs();
+            loadFileContent(activeFileIndex);
+        }
+
+        function handleFileImport(event) {
+            const importedFiles = event.target.files;
+            if (!importedFiles.length) return;
+            Array.from(importedFiles).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    files.push({
+                        name: file.name,
+                        language: file.name.endsWith('.sol') ? 'solidity' : 'javascript',
+                        content: e.target.result
+                    });
+                    renderFileList();
+                    renderTabs();
+                    switchFile(files.length - 1);
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function exportActiveFile() {
+            const file = files[activeFileIndex];
+            const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+            logConsole(`[Archivo] ${file.name} guardado correctamente.`, 'text-emerald-400');
+        }
+
+        // SOLIDITY COMPILER & DEPLOYMENT SIMULATOR
+        function compileSolidity() {
+            const activeFile = files[activeFileIndex];
+            const code = editor.getValue();
+
+            switchTerminalTab('output');
+
+            if (!activeFile.name.endsWith('.sol')) {
+                // Check if it's HTML
+                if (activeFile.name.endsWith('.html')) {
+                    switchTerminalTab('preview');
+                    const iframe = document.getElementById('previewFrame');
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    doc.open();
+                    doc.write(code);
+                    doc.close();
+                    logConsole(`[DApp Preview] Servidor Web3 frontend actualizado.`, 'text-emerald-400');
+                    return;
+                }
+                logConsole(`[Compiler] Por favor selecciona un archivo con extensión .sol para compilar Solidity.`, 'text-amber-400');
+                return;
+            }
+
+            logConsole(`[Compiler] Compilando ${activeFile.name} con solc v0.8.24...`, 'text-indigo-400 font-bold');
+
+            // Client-Side AST Parsing Simulation & Syntax Error Checker
+            const syntaxErrors = checkSoliditySyntaxErrors(code);
+
+            if (syntaxErrors.length > 0) {
+                syntaxErrors.forEach(err => {
+                    logConsole(`[Error Compilación] ${err}`, 'text-rose-400 font-mono');
+                });
+                return;
+            }
+
+            // Extract Contract Name
+            const contractNameMatch = code.match(/contract\s+([A-Za-z0-9_]+)/);
+            const contractName = contractNameMatch ? contractNameMatch[1] : 'UnknownContract';
+
+            // Extract Functions and Variables
+            const functions = parseSolidityFunctions(code);
+            const stateVariables = parseSolidityVariables(code);
+
+            const mockBytecode = '0x608060405234801561001057600080fd5b50604051610' + Math.floor(Math.random()*1000000) + '6000';
+            const mockABI = generateMockABI(functions, stateVariables);
+
+            logConsole(`[Compiler Success] Contrato '${contractName}' compilado exitosamente.`, 'text-emerald-400 font-bold');
+            logConsole(`├─ Bytecode Size: ${(mockBytecode.length / 2)} bytes`, 'text-gray-400');
+            logConsole(`└─ ABI Functions: ${functions.length} detectadas`, 'text-gray-400');
+
+            // Save Compiled Artifact
+            deployedContracts[contractName] = {
+                name: contractName,
+                code: code,
+                bytecode: mockBytecode,
+                abi: mockABI,
+                functions: functions,
+                stateVariables: stateVariables
+            };
+        }
+
+        function checkSoliditySyntaxErrors(code) {
+            const errors = [];
+            if (!code.includes('pragma solidity')) {
+                errors.push("Línea 1: Falta directiva 'pragma solidity ^0.8.0;'.");
+            }
+            if (!code.includes('contract')) {
+                errors.push("Error de Sintaxis: No se encontró la declaración 'contract'.");
+            }
+
+            const openBrackets = (code.match(/\{/g) || []).length;
+            const closeBrackets = (code.match(/\}/g) || []).length;
+            if (openBrackets !== closeBrackets) {
+                errors.push("Error de Sintaxis: Desbalance de llaves '{ }' en el contrato.");
+            }
+
+            return errors;
+        }
+
+        function parseSolidityFunctions(code) {
+            const funcs = [];
+            const regex = /function\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*(public|external|private|internal)?\s*(view|pure|payable)?\s*(returns\s*\(([^)]*)\))?/g;
+            let match;
+            while ((match = regex.exec(code)) !== null) {
+                funcs.push({
+                    name: match[1],
+                    params: match[2] ? match[2].split(',').map(p => p.trim()) : [],
+                    visibility: match[3] || 'public',
+                    mutability: match[4] || 'nonpayable',
+                    returns: match[6] || null
+                });
+            }
+            return funcs;
+        }
+
+        function parseSolidityVariables(code) {
+            const vars = [];
+            const regex = /(uint256|string|address|bool|mapping\(.*?\))\s+(public|private|internal)?\s*([A-Za-z0-9_]+)/g;
+            let match;
+            while ((match = regex.exec(code)) !== null) {
+                if (match[3] !== 'contract' && match[3] !== 'function') {
+                    vars.push({
+                        type: match[1],
+                        visibility: match[2] || 'internal',
+                        name: match[3],
+                        value: match[1] === 'uint256' ? 100 : (match[1] === 'address' ? mockAccounts[0].address : 'Initial')
+                    });
+                }
+            }
+            return vars;
+        }
+
+        function generateMockABI(functions, stateVars) {
+            return functions.map(f => ({
+                name: f.name,
+                type: 'function',
+                stateMutability: f.mutability,
+                inputs: f.params.map(p => ({ name: p.split(' ')[1] || 'param', type: p.split(' ')[0] || 'uint256' }))
+            }));
+        }
+
+        function deployContract() {
+            const activeFile = files[activeFileIndex];
+            if (!activeFile.name.endsWith('.sol')) {
+                alert("Por favor selecciona un archivo .sol para desplegar.");
+                return;
+            }
+
+            compileSolidity();
+
+            const contractNameMatch = editor.getValue().match(/contract\s+([A-Za-z0-9_]+)/);
+            if (!contractNameMatch) return;
+            const contractName = contractNameMatch[1];
+            const compiled = deployedContracts[contractName];
+
+            if (!compiled) return;
+
+            const contractAddr = '0x' + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
+            currentDeployedAddress = contractAddr;
+
+            const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+            const gasUsed = 124500;
+
+            // Deduct Fee
+            const fee = 0.002;
+            mockAccounts[activeAccountIndex].balance -= fee;
+            updateActiveAccountUI();
+
+            // Record Tx
+            transactions.unshift({
+                hash: txHash,
+                type: 'Contract Deployment',
+                contract: contractName,
+                from: mockAccounts[activeAccountIndex].address,
+                to: contractAddr,
+                status: 'Success',
+                gasUsed: gasUsed
+            });
+
+            // Mine Block
+            mineBlock(txHash, contractName, contractAddr);
+
+            logConsole(`[Deployment] Contrato '${contractName}' desplegado en red.`, 'text-emerald-400 font-bold');
+            logConsole(`├─ Dirección Contrato: ${contractAddr}`, 'text-amber-300 font-mono');
+            logConsole(`├─ Tx Hash: ${txHash.substring(0, 20)}...`, 'text-gray-400 font-mono');
+            logConsole(`└─ Gas Consumido: ${gasUsed}`, 'text-gray-400');
+
+            renderContractInspector(compiled, contractAddr);
+            renderTxHistory();
+            switchTerminalTab('inspector');
+        }
+
+        function renderContractInspector(compiled, address) {
+            const container = document.getElementById('inspectorContainer');
+            container.innerHTML = `
+                <div class="bg-vs-panel p-2.5 rounded border border-vs-border flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-indigo-300 text-sm">${compiled.name}</span>
+                        <span class="text-gray-400 font-mono ml-2 text-[11px]">${address}</span>
+                    </div>
+                    <span class="bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] px-2 py-0.5 rounded">Desplegado</span>
+                </div>
+
+                <!-- State Variables Inspector -->
+                <div class="bg-vs-panel/60 p-2.5 rounded border border-vs-border space-y-2">
+                    <h4 class="font-bold text-sky-400 text-xs">Variables de Estado (Read Storage)</h4>
+                    <div id="stateVarsList" class="space-y-1"></div>
+                </div>
+
+                <!-- Write / Read Functions UI -->
+                <div class="bg-vs-panel/60 p-2.5 rounded border border-vs-border space-y-3">
+                    <h4 class="font-bold text-amber-400 text-xs">Funciones Ejecutables (Write / Read)</h4>
+                    <div id="functionsList" class="space-y-2"></div>
+                </div>
+            `;
+
+            // State Variables
+            const varsList = document.getElementById('stateVarsList');
+            compiled.stateVariables.forEach(v => {
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center text-xs bg-vs-bg p-1.5 rounded border border-vs-border font-mono';
+                el.innerHTML = `
+                    <span class="text-purple-300">${v.name} (${v.type}):</span>
+                    <span id="var-val-${v.name}" class="text-emerald-400 font-bold">${v.value}</span>
+                `;
+                varsList.appendChild(el);
+            });
+
+            // Functions
+            const funcsList = document.getElementById('functionsList');
+            compiled.functions.forEach(f => {
+                const isView = f.mutability === 'view' || f.mutability === 'pure';
+                const card = document.createElement('div');
+                card.className = `p-2 rounded border text-xs space-y-1.5 ${isView ? 'bg-sky-950/20 border-sky-800/60' : 'bg-amber-950/20 border-amber-800/60'}`;
+
+                let inputsHtml = f.params.map((p, idx) => `
+                    <input type="text" id="input-${f.name}-${idx}" placeholder="${p}" class="w-full bg-vs-bg border border-vs-border rounded p-1 text-xs font-mono text-gray-200">
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold font-mono ${isView ? 'text-sky-300' : 'text-amber-300'}">${f.name}()</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded ${isView ? 'bg-sky-900 text-sky-200' : 'bg-amber-900 text-amber-200'}">${f.mutability}</span>
+                    </div>
+                    ${inputsHtml}
+                    <button onclick="executeContractFunction('${f.name}', ${isView})" class="w-full py-1 rounded text-xs font-semibold ${isView ? 'bg-sky-700 hover:bg-sky-600 text-white' : 'bg-amber-700 hover:bg-amber-600 text-white'} transition">
+                        ${isView ? 'Llamar (Read)' : 'Transaccionar (Write)'}
+                    </button>
+                    <div id="output-${f.name}" class="text-[11px] font-mono text-emerald-400 hidden pt-1"></div>
+                `;
+                funcsList.appendChild(card);
+            });
+        }
+
+        function executeContractFunction(funcName, isView) {
+            const outputEl = document.getElementById(`output-${funcName}`);
+            outputEl.classList.remove('hidden');
+
+            if (isView) {
+                outputEl.innerText = `[Resultado Read]: 100`;
+                logConsole(`[Call View Function] ${funcName}() -> 100`, 'text-sky-300');
+            } else {
+                const inputVal = document.querySelector(`[id^="input-${funcName}"]`)?.value || '42';
+                
+                // Deduct Gas Fee
+                mockAccounts[activeAccountIndex].balance -= 0.0005;
+                updateActiveAccountUI();
+
+                const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+                transactions.unshift({
+                    hash: txHash,
+                    type: `Call ${funcName}(${inputVal})`,
+                    contract: 'ActiveContract',
+                    from: mockAccounts[activeAccountIndex].address,
+                    to: currentDeployedAddress,
+                    status: 'Success',
+                    gasUsed: 43200
+                });
+
+                mineBlock(txHash, `Call ${funcName}`, currentDeployedAddress);
+
+                // Dynamically update UI state
+                const targetVar = document.getElementById('var-val-storedData');
+                if (targetVar) targetVar.innerText = inputVal;
+
+                outputEl.innerText = `[Tx Exitosa]: TxHash ${txHash.substring(0, 10)}...`;
+                logConsole(`[State Tx Executed] ${funcName}(${inputVal}) - Gas: 43200`, 'text-emerald-400');
+                renderTxHistory();
+            }
+        }
+
+        function genesisBlock() {
+            blockchainBlocks.push({
+                number: 0,
+                hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+                txCount: 0,
+                timestamp: new Date().toLocaleTimeString(),
+                miner: '0x0000000000000000000000000000000000000000'
+            });
+            renderBlockchainBlocks();
+        }
+
+        function mineBlock(txHash, contract, address) {
+            const blockNum = blockchainBlocks.length;
+            const blockHash = '0x0000' + Array.from({length: 60}, () => Math.floor(Math.random()*16).toString(16)).join('');
+            
+            blockchainBlocks.unshift({
+                number: blockNum,
+                hash: blockHash,
+                txCount: 1,
+                timestamp: new Date().toLocaleTimeString(),
+                miner: mockAccounts[0].address
+            });
+
+            renderBlockchainBlocks();
+        }
+
+        function renderBlockchainBlocks() {
+            const list = document.getElementById('blockchainBlocksList');
+            document.getElementById('latestBlockBadge').innerText = `Último Bloque: #${blockchainBlocks[0].number}`;
+            list.innerHTML = '';
+
+            blockchainBlocks.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'bg-vs-bg p-2 rounded border border-vs-border flex justify-between items-center font-mono text-xs';
+                card.innerHTML = `
+                    <div>
+                        <span class="text-sky-400 font-bold">Bloque #${b.number}</span>
+                        <div class="text-[10px] text-gray-500">Hash: ${b.hash.substring(0, 24)}...</div>
+                    </div>
+                    <div class="text-right text-[11px]">
+                        <span class="text-emerald-400">${b.txCount} Tx</span>
+                        <div class="text-[10px] text-gray-400">${b.timestamp}</div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function renderTxHistory() {
+            const container = document.getElementById('txHistoryList');
+            document.getElementById('txCountBadge').innerText = transactions.length;
+            container.innerHTML = '';
+
+            transactions.forEach(tx => {
+                const item = document.createElement('div');
+                item.className = 'bg-vs-bg p-1.5 rounded border border-vs-border space-y-0.5 text-[10px]';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-indigo-300 font-bold">${tx.type}</span>
+                        <span class="text-emerald-400 font-semibold">${tx.status}</span>
+                    </div>
+                    <div class="text-gray-500 text-[9px] font-mono truncate">Tx: ${tx.hash}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function toggleWalletConnection() {
+            isWalletConnected = !isWalletConnected;
+            const btnText = document.getElementById('walletBtnText');
+            const btn = document.getElementById('walletBtn');
+
+            if (isWalletConnected) {
+                btnText.innerText = `${mockAccounts[activeAccountIndex].address.substring(0,6)}...`;
+                btn.className = 'bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1 rounded text-xs flex items-center space-x-1.5 transition';
+                logConsole(`[MetaMask Sim] Wallet conectada: ${mockAccounts[activeAccountIndex].address}`, 'text-emerald-400');
+            } else {
+                btnText.innerText = 'Conectar Wallet';
+                btn.className = 'bg-vs-accent hover:bg-vs-accentHover text-white px-3 py-1 rounded text-xs flex items-center space-x-1.5 transition';
+                logConsole(`[MetaMask Sim] Wallet desconectada.`, 'text-amber-400');
+            }
+        }
+
+        function switchNetwork() {
+            const net = document.getElementById('networkSelect').value;
+            logConsole(`[Network Switch] Red cambiada a: ${net.toUpperCase()}`, 'text-sky-400 font-bold');
+        }
+
+        function switchTerminalTab(tab) {
+            ['output', 'inspector', 'blockchain', 'preview'].forEach(t => {
+                document.getElementById('term' + capitalize(t)).classList.add('hidden');
+                document.getElementById('tabBtn' + capitalize(t)).className = 'text-gray-400 hover:text-gray-200 pb-0.5 flex items-center space-x-1';
+            });
+            document.getElementById('term' + capitalize(tab)).classList.remove('hidden');
+            document.getElementById('tabBtn' + capitalize(tab)).className = 'text-indigo-400 font-bold border-b-2 border-indigo-400 pb-0.5 flex items-center space-x-1';
+        }
+
+        function logConsole(msg, styleClass = 'text-gray-300') {
+            const term = document.getElementById('termOutput');
+            const div = document.createElement('div');
+            div.className = styleClass;
+            div.innerText = msg;
+            term.appendChild(div);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('termOutput').innerHTML = '<div class="text-gray-500 italic">Logs de consola limpiados.</div>';
+        }
+
+        function openSnippetsModal() { document.getElementById('snippetsModal').classList.remove('hidden'); }
+        function closeSnippetsModal() { document.getElementById('snippetsModal').classList.add('hidden'); }
+        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+        function loadSnippet(key) {
+            closeSnippetsModal();
+            if (key === 'storage') {
+                files.push({
+                    name: 'SimpleStorage.sol',
+                    language: 'solidity',
+                    content: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract SimpleStorage {\n    uint256 private storedData;\n    function set(uint256 x) public { storedData = x; }\n    function get() public view returns (uint256) { return storedData; }\n}`
+                });
+            } else if (key === 'erc20') {
+                files.push({
+                    name: 'MyToken.sol',
+                    language: 'solidity',
+                    content: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract MyToken {\n    string public name = "Token Web3";\n    uint256 public totalSupply = 1000000;\n}`
+                });
+            } else if (key === 'erc721') {
+                files.push({
+                    name: 'CryptoArt.sol',
+                    language: 'solidity',
+                    content: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract CryptoArt {\n    string public name = "Digital Art NFT";\n    uint256 public nextTokenId = 1;\n    function mint() public returns (uint256) { return nextTokenId++; }\n}`
+                });
+            } else if (key === 'dapp') {
+                files.push({
+                    name: 'index.html',
+                    language: 'html',
+                    content: `<!DOCTYPE html>\n<html>\n<body>\n  <h1>Web3 Client</h1>\n</body>\n</html>`
+                });
+            }
+            renderFileList();
+            renderTabs();
+            switchFile(files.length - 1);
+        }
+
+        function applySettings() {
+            const size = document.getElementById('settingFontSize').value;
+            document.querySelector('.CodeMirror').style.fontSize = size + 'px';
+            editor.refresh();
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
+</body>
+</html>
